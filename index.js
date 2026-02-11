@@ -3,8 +3,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 import connectDB from "./Config/connection.config.js";
 
-import cartRouter from "./Routes/cart.routes.js";
 import authRouter from "./Routes/auth.routes.js";
+import cartRouter from "./Routes/cart.routes.js";
 import couponRouter from "./Routes/coupon.routes.js";
 import orderRouter from "./Routes/order.routes.js";
 import productRouter from "./Routes/product.routes.js";
