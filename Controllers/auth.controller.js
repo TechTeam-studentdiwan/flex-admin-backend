@@ -4,7 +4,6 @@ import bcrypt from 'bcrypt'
 
 export const registerUser = async (req, res) => {
     const { email, password, name } = req.body;
-
     const exists = await UserModel.findOne({ email });
     if (exists) return res.status(400).json({ message: "Email already registered" });
     const salt = await bcrypt.genSalt(10);
