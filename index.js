@@ -24,7 +24,7 @@ app.use("/cart", cartRouter);
 app.use("/coupons", couponRouter);
 app.use("/orders", orderRouter);
 app.use("/products", productRouter);
-app.use("/user", userRouter);
+app.use("/user", userRouter); 
 app.use("/wishlist", wishlistRouter);
 
 
