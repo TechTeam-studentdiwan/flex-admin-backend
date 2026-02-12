@@ -7,12 +7,12 @@ export const getUserMeasurement = async (req, res) => {
 
     try {
         const user = await UserModel.findOne({ id: req.params.userId });
-        if (!user) return res.status(404).json({ message: "User not found" });
+        if (!user) return res.status(404).json({ success: false,message: "User not found" });
 
-        res.json({ profiles: user.measurementProfiles || [] });
+        res.json({success: true, profiles: user.measurementProfiles || [] });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ message: "Server error" });
+        res.status(500).json({success: false, message: "Server error" });
     }
 };
 
@@ -30,7 +30,7 @@ export const addUserMeasurement = async (req, res) => {
         res.json({ success: true, message: "Profile added", profile });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ message: "Server error" });
+        res.status(500).json({success: false, message: "Server error" });
     }
 };
 
@@ -82,7 +82,7 @@ export const validateMeasurement = async (req, res) => {
         });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ message: "Server error" });
+        res.status(500).json({success: false, message: "Server error" });
     }
 };
 

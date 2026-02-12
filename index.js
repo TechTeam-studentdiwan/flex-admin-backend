@@ -10,6 +10,7 @@ import orderRouter from "./Routes/order.routes.js";
 import productRouter from "./Routes/product.routes.js";
 import userRouter from "./Routes/user.routes.js";
 import wishlistRouter from "./Routes/wishlist.routes.js";
+import categoryRouter from "./Routes/category.routes.js";
 
 
 dotenv.config();
@@ -26,6 +27,7 @@ app.use("/orders", orderRouter);
 app.use("/products", productRouter);
 app.use("/user", userRouter); 
 app.use("/wishlist", wishlistRouter);
+app.use("/categories", categoryRouter);
 
 
 const PORT = process.env.PORT || 8000;
