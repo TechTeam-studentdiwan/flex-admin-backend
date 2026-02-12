@@ -4,68 +4,86 @@ import ProductModel from "../Models/product.model.js";
 
 
 export const getUserMeasurement = async (req, res) => {
-    const user = await UserModel.findOne({ id: req.params.userId });
-    if (!user) return res.status(404).json({ message: "User not found" });
 
-    res.json({ profiles: user.measurementProfiles || [] });
+    try {
+        const user = await UserModel.findOne({ id: req.params.userId });
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        res.json({ profiles: user.measurementProfiles || [] });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server error" });
+    }
 };
 
 export const addUserMeasurement = async (req, res) => {
-    const { userId, profile } = req.body;
 
-    const user = await UserModel.findOne({ id: userId });
-    if (!user) return res.status(404).json({ message: "User not found" });
+    try {
+        const { userId, profile } = req.body;
 
-    user.measurementProfiles.push(profile);
-    await user.save();
+        const user = await UserModel.findOne({ id: userId });
+        if (!user) return res.status(404).json({ message: "User not found" });
 
-    res.json({ success: true, message: "Profile added", profile });
+        user.measurementProfiles.push(profile);
+        await user.save();
+
+        res.json({ success: true, message: "Profile added", profile });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server error" });
+    }
 };
 
 export const validateMeasurement = async (req, res) => {
-    const { productId, selectedSize, profileId } = req.body;
 
-    const product = await ProductModel.findOne({ id: productId });
-    if (!product) return res.status(404).json({ message: "Product not found" });
+    try {
+        const { productId, selectedSize, profileId } = req.body;
 
-    const user = await UserModel.findOne({ "measurementProfiles.id": profileId });
-    if (!user) return res.status(404).json({ message: "User not found" });
+        const product = await ProductModel.findOne({ id: productId });
+        if (!product) return res.status(404).json({ message: "Product not found" });
 
-    const profile = user.measurementProfiles.find(p => p.id === profileId);
-    if (!profile) return res.status(404).json({ message: "Profile not found" });
+        const user = await UserModel.findOne({ "measurementProfiles.id": profileId });
+        if (!user) return res.status(404).json({ message: "User not found" });
 
-    if (!product.fitAdjustmentEnabled || !product.sizeChart) {
-        return res.json({ eligible: false, message: "Fit adjustment not available" });
-    }
+        const profile = user.measurementProfiles.find(p => p.id === profileId);
+        if (!profile) return res.status(404).json({ message: "Profile not found" });
 
-    const sizeChart = product.sizeChart[selectedSize];
-    if (!sizeChart) {
-        return res.json({ eligible: false, message: "Size chart not available" });
-    }
+        if (!product.fitAdjustmentEnabled || !product.sizeChart) {
+            return res.json({ eligible: false, message: "Fit adjustment not available" });
+        }
 
-    const m = profile.measurements;
-    const reasons = [];
+        const sizeChart = product.sizeChart[selectedSize];
+        if (!sizeChart) {
+            return res.json({ eligible: false, message: "Size chart not available" });
+        }
 
-    if (m.bust > sizeChart.bust_max) reasons.push("bust");
-    if (m.waist > sizeChart.waist_max) reasons.push("waist");
-    if (m.hips > sizeChart.hips_max) reasons.push("hips");
-    if (m.shoulder > sizeChart.shoulder_max) reasons.push("shoulder");
+        const m = profile.measurements;
+        const reasons = [];
 
-    if (reasons.length) {
-        return res.json({
-            eligible: false,
-            reasons,
-            message: `These measurements exceed the selected size (${reasons.join(", ")}).`,
+        if (m.bust > sizeChart.bust_max) reasons.push("bust");
+        if (m.waist > sizeChart.waist_max) reasons.push("waist");
+        if (m.hips > sizeChart.hips_max) reasons.push("hips");
+        if (m.shoulder > sizeChart.shoulder_max) reasons.push("shoulder");
+
+        if (reasons.length) {
+            return res.json({
+                eligible: false,
+                reasons,
+                message: `These measurements exceed the selected size (${reasons.join(", ")}).`,
+            });
+        }
+
+        res.json({
+            eligible: true,
+            fee: 30,
+            extraDays: 3,
+            adjustments: ["length", "sleeve", "waist"],
+            profileName: profile.profileName,
         });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server error" });
     }
-
-    res.json({
-        eligible: true,
-        fee: 30,
-        extraDays: 3,
-        adjustments: ["length", "sleeve", "waist"],
-        profileName: profile.profileName,
-    });
 };
 
 

@@ -1,27 +1,38 @@
-import UserModel from "../Models/user.model.js";                                                                                  
+import UserModel from "../Models/user.model.js";
 
 
 export const addUserAddress = async (req, res) => {
-    const { userId, address } = req.body;
 
-    const user = await UserModel.findOne({ id: userId });
-    if (!user) return res.status(404).json({ message: "User not found" });
+    try {
+        const { userId, address } = req.body;
 
-    if (address.isDefault) {
-        user.addresses.forEach(a => (a.isDefault = false));
+        const user = await UserModel.findOne({ id: userId });
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        if (address.isDefault) {
+            user.addresses.forEach(a => (a.isDefault = false));
+        }
+
+        user.addresses.push(address);
+        await user.save();
+
+        res.json({ success: true, message: "Address added" });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server error" });
     }
-
-    user.addresses.push(address);
-    await user.save();
-
-    res.json({ success: true, message: "Address added" });
 };
 
 export const getUserAddress = async (req, res) => {
-    const user = await UserModel.findOne({ id: req.params.userId });
-    if (!user) return res.status(404).json({ message: "User not found" });
+    try {
+        const user = await UserModel.findOne({ id: req.params.userId });
+        if (!user) return res.status(404).json({ message: "User not found" });
 
-    res.json({ addresses: user.addresses });
+        res.json({ addresses: user.addresses });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server error" });
+    }
 };
 
 
