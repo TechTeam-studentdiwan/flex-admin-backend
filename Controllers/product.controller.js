@@ -1,6 +1,59 @@
 
 import ProductModel from "../Models/product.model.js";
 
+export const addProduct = async (req, res) => {
+    try {
+        const data = req.body;
+
+        if (!data.name || data.price === undefined || !data.category) {
+            return res.status(400).json({ message: "Name, price and category are required" });
+        }
+
+        const product = await ProductModel.create(data);
+
+        return res.json({ success: true, product, message: "Product added" });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+
+export const updateProduct = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const updates = req.body;
+
+        const product = await ProductModel.findOne({ id });
+        if (!product) {
+            return res.status(404).json({ success: false, message: "Product not found" });
+        }
+
+        Object.assign(product, updates);
+        await product.save();
+
+        return res.json({ success: true, product, message: "Product updated" });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+
+
+export const deleteProduct = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const product = await ProductModel.findOneAndDelete({ id });
+        if (!product) {
+            return res.status(404).json({ success: false, message: "Product not found" });
+        }
+
+        return res.json({ success: true, message: "Product deleted" });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ success: false, message: "Server error" });
+    }
+};
 
 export const getProducts = async (req, res) => {
 
@@ -39,16 +92,16 @@ export const getProducts = async (req, res) => {
 
         const total = await ProductModel.countDocuments(query);
 
-        res.json({ products, total });
+        res.status(200).json({ success: true, products, total });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ message: "Server error" });
+        res.status(500).json({ success: false, message: "Server error" });
     }
 };
 
 export const getProductbyId = async (req, res) => {
     const product = await ProductModel.findOne({ id: req.params.id });
-    if (!product) return res.status(404).json({ message: "Product not found" });
-    res.json(product);
+    if (!product) return res.status(404).json({ success: false, message: "Product not found" });
+    res.status(200).json({ success: true, product });
 };
 
