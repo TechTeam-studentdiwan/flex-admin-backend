@@ -3,8 +3,7 @@ import ProductModel from "../Models/product.model.js";
 
 export const addProduct = async (req, res) => {
     try {
-        const data = req.body;
-
+        const data = req.body || {};
         if (!data.name || data.price === undefined || !data.category) {
             return res.status(400).json({ message: "Name, price and category are required" });
         }
@@ -23,7 +22,7 @@ export const updateProduct = async (req, res) => {
         const { id } = req.params;
         const updates = req.body;
 
-        const product = await ProductModel.findOne({ id });
+        const product = await ProductModel.findById(id);
         if (!product) {
             return res.status(404).json({ success: false, message: "Product not found" });
         }
@@ -43,7 +42,7 @@ export const deleteProduct = async (req, res) => {
     try {
         const { id } = req.params;
 
-        const product = await ProductModel.findOneAndDelete({ id });
+        const product = await ProductModel.findByIdAndDelete(id);
         if (!product) {
             return res.status(404).json({ success: false, message: "Product not found" });
         }
