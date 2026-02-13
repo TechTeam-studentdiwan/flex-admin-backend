@@ -2,7 +2,7 @@ import CategoryModel from "../Models/category.model.js";
 
 export const addCategory = async (req, res) => {
   try {
-    const { name, image, order } = req.body;
+    const { name, image, order } = req.body || {};
 
     if (!name || order === undefined) {
       return res.status(400).json({ message: "Name and order are required" });
@@ -39,9 +39,9 @@ export const getCategories = async (req, res) => {
 export const updateCategory = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, image, order } = req.body;
+    const { name, image, order } = req.body || {};
 
-    const category = await CategoryModel.findOne({ id });
+    const category = await CategoryModel.findById(id);
     if (!category) {
       return res.status(404).json({ message: "Category not found" });
     }
@@ -63,8 +63,7 @@ export const updateCategory = async (req, res) => {
 export const deleteCategory = async (req, res) => {
   try {
     const { id } = req.params;
-
-    const category = await CategoryModel.findOneAndDelete({ id });
+    const category = await CategoryModel.findByIdAndDelete(id);
     if (!category) {
       return res.status(404).json({ message: "Category not found" });
     }
