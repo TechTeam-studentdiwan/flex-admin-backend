@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import cookieParser from "cookie-parser";
 import connectDB from "./Config/connection.config.js";
 
 import authRouter from "./Routes/auth.routes.js";
@@ -18,14 +19,14 @@ dotenv.config();
 const app = express();
 app.use(cors());
 app.use(express.json());
-
+app.use(cookieParser());
 
 app.use("/auth", authRouter);
 app.use("/cart", cartRouter);
 app.use("/coupons", couponRouter);
 app.use("/orders", orderRouter);
 app.use("/products", productRouter);
-app.use("/user", userRouter); 
+app.use("/user", userRouter);
 app.use("/wishlist", wishlistRouter);
 app.use("/categories", categoryRouter);
 
@@ -39,5 +40,5 @@ app.listen(PORT, async () => {
         );
     } catch (error) {
         console.error(error);
-    } 
+    }
 });

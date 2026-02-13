@@ -1,40 +1,44 @@
 import mongoose from "mongoose";
-import { v4 as uuidv4 } from "uuid";
 
-const AddressSchema = new mongoose.Schema({
-    id: { type: String, default: uuidv4 },
-    label: String,
-    fullName: String,
-    phone: String,
-    addressLine1: String,
-    addressLine2: String,
-    city: String,
-    state: String,
-    postalCode: String,
-    country: { type: String, default: "Qatar" },
-    isDefault: { type: Boolean, default: false },
-});
+const AddressSchema = new mongoose.Schema(
+    {
+        label: { type: String, trim: true },
+        fullName: { type: String, trim: true },
+        phone: { type: String, trim: true },
+        addressLine1: { type: String, trim: true },
+        addressLine2: { type: String, trim: true },
+        city: { type: String, trim: true },
+        state: { type: String, trim: true },
+        postalCode: { type: String, trim: true },
+        country: { type: String, default: "Qatar" },
+        isDefault: { type: Boolean, default: false },
+    },
+    { timestamps: true }
+);
 
-const MeasurementProfileSchema = new mongoose.Schema({
-    id: { type: String, default: uuidv4 },
-    profileName: String,
-    measurements: Object,
-    notes: String,
-    lastUpdated: { type: Date, default: Date.now },
-});
+const MeasurementProfileSchema = new mongoose.Schema(
+    {
+        profileName: { type: String, trim: true, required: true },
+        measurements: { type: Object, default: {} },
+        notes: { type: String, trim: true },
+    },
+    { timestamps: true }
+);
 
-const UserSchema = new mongoose.Schema({
-    id: { type: String, default: uuidv4 },
-    phone: String,
-    email: String,
-    name: String,
-    password: String,
-    isGuest: { type: Boolean, default: false },
-    addresses: [AddressSchema],
-    measurementProfiles: [MeasurementProfileSchema],
-    wishlist: [String],
-    createdAt: { type: Date, default: Date.now },
-});
+const UserSchema = new mongoose.Schema(
+    {
+        phone: { type: String, trim: true, index: true },
+        email: { type: String, trim: true, lowercase: true, index: true },
+        name: { type: String, trim: true },
+        password: { type: String },
+        isGuest: { type: Boolean, default: false },
+        isAdmin: { type: Boolean, default: false },
+        addresses: [AddressSchema],
+        measurementProfiles: [MeasurementProfileSchema],
+        wishlist: [{ type: String }],
+    },
+    { timestamps: true }
+);
 
 const UserModel = mongoose.model("User", UserSchema);
 export default UserModel;
