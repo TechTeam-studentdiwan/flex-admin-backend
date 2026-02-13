@@ -5,7 +5,11 @@ const ProductSchema = new mongoose.Schema({
   description: String,
   price: Number,
   discountPrice: Number,
-  category: String,
+  category: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Category",
+    required: true,
+  },
   subcategory: String,
   images: [String],
   sizes: [String],
@@ -19,7 +23,7 @@ const ProductSchema = new mongoose.Schema({
   careInstructions: { type: String, default: "Dry clean recommended" },
   isActive: { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 const ProductModel =
   mongoose.models.Product || mongoose.model("Product", ProductSchema);

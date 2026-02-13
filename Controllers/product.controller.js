@@ -88,7 +88,8 @@ export const getProducts = async (req, res) => {
         const products = await ProductModel.find(query)
             .sort(sortMap[sort] || { createdAt: -1 })
             .skip(Number(skip))
-            .limit(Number(limit));
+            .limit(Number(limit))
+            .populate("category");
 
         const total = await ProductModel.countDocuments(query);
 
@@ -100,7 +101,7 @@ export const getProducts = async (req, res) => {
 };
 
 export const getProductbyId = async (req, res) => {
-    const product = await ProductModel.findOne({ id: req.params.id });
+    const product = await ProductModel.findOne({ id: req.params.id }).populate("category")
     if (!product) return res.status(404).json({ success: false, message: "Product not found" });
     res.status(200).json({ success: true, product });
 };
