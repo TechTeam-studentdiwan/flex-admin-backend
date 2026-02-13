@@ -1,5 +1,64 @@
 import CouponModel from "../Models/coupon.model.js";
 
+export const createCoupon = async (req, res) => {
+    try {
+        const data = req.body;
+
+        if (!data.code || !data.type || data.value === undefined || !data.validFrom || !data.validTo) {
+            return res.status(400).json({ message: "Missing required fields" });
+        }
+
+        const exists = await CouponModel.findOne({ code: data.code });
+        if (exists) {
+            return res.status(400).json({ message: "Coupon code already exists" });
+        }
+
+        const coupon = await CouponModel.create(data);
+
+        return res.json({ success: true, coupon, message: "Coupon created" });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: "Server error" });
+    }
+};
+
+
+export const updateCoupon = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const updates = req.body;
+
+        const coupon = await CouponModel.findById(id);
+        if (!coupon) {
+            return res.status(404).json({ message: "Coupon not found" });
+        }
+
+        Object.assign(coupon, updates);
+        await coupon.save();
+
+        return res.json({ success: true, coupon, message: "Coupon updated" });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: "Server error" });
+    }
+};
+
+
+export const deleteCoupon = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const coupon = await CouponModel.findByIdAndDelete(id);
+        if (!coupon) {
+            return res.status(404).json({ message: "Coupon not found" });
+        }
+
+        return res.json({ success: true, message: "Coupon deleted" });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: "Server error" });
+    }
+};
 
 export const getCoupons = async (req, res) => {
 
