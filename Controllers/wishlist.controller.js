@@ -7,7 +7,7 @@ export const addtoWishlist = async (req, res) => {
     try {
         const { userId, productId } = req.body;
 
-        const user = await UserModel.findOne({ id: userId });
+        const user = await UserModel.findById(userId);
         if (!user) return res.status(404).json({ message: "User not found" });
 
         if (!user.wishlist.includes(productId)) {
@@ -27,10 +27,10 @@ export const removefromWishlist = async (req, res) => {
     try {
         const { userId, productId } = req.body;
 
-        const user = await UserModel.findOne({ id: userId });
+        const user = await UserModel.findById(userId);
         if (!user) return res.status(404).json({ message: "User not found" });
 
-        user.wishlist = user.wishlist.filter(id => id !== productId);
+        user.wishlist = user.wishlist.filter(id => id.toString() !== productId);
         await user.save();
 
         res.json({ success: true, message: "Removed from wishlist" });
@@ -42,8 +42,9 @@ export const removefromWishlist = async (req, res) => {
 
 export const getWishlist = async (req, res) => {
 
+    const id = req?.params?.userId;
     try {
-        const user = await UserModel.findOne({ id: req.params.userId });
+        const user = await UserModel.findOne(id);
         if (!user) return res.status(404).json({ message: "User not found" });
 
         const products = await ProductModel.find({ id: { $in: user.wishlist } });
