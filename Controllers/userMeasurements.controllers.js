@@ -5,23 +5,25 @@ import ProductModel from "../Models/product.model.js";
 
 export const getUserMeasurement = async (req, res) => {
 
+    const id = req.params.userId;
     try {
-        const user = await UserModel.findOne({ id: req.params.userId });
-        if (!user) return res.status(404).json({ success: false,message: "User not found" });
+        const user = await UserModel.findById(id);
+        if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
-        res.json({success: true, profiles: user.measurementProfiles || [] });
+        res.json({ success: true, profiles: user.measurementProfiles || [] });
     } catch (err) {
         console.error(err);
-        res.status(500).json({success: false, message: "Server error" });
+        res.status(500).json({ success: false, message: "Server error" });
     }
 };
 
 export const addUserMeasurement = async (req, res) => {
 
     try {
-        const { userId, profile } = req.body;
-
-        const user = await UserModel.findOne({ id: userId });
+           console.log(req.body)
+        const { userId, profile } = req?.body;
+     
+        const user = await UserModel.findById(userId);
         if (!user) return res.status(404).json({ message: "User not found" });
 
         user.measurementProfiles.push(profile);
@@ -30,7 +32,7 @@ export const addUserMeasurement = async (req, res) => {
         res.json({ success: true, message: "Profile added", profile });
     } catch (err) {
         console.error(err);
-        res.status(500).json({success: false, message: "Server error" });
+        res.status(500).json({ success: false, message: "Server error" });
     }
 };
 
@@ -39,7 +41,7 @@ export const validateMeasurement = async (req, res) => {
     try {
         const { productId, selectedSize, profileId } = req.body;
 
-        const product = await ProductModel.findOne({ id: productId });
+        const product = await ProductModel.findById(productId);
         if (!product) return res.status(404).json({ message: "Product not found" });
 
         const user = await UserModel.findOne({ "measurementProfiles.id": profileId });
@@ -82,7 +84,7 @@ export const validateMeasurement = async (req, res) => {
         });
     } catch (err) {
         console.error(err);
-        res.status(500).json({success: false, message: "Server error" });
+        res.status(500).json({ success: false, message: "Server error" });
     }
 };
 
