@@ -5,7 +5,7 @@ import ProductModel from "../Models/product.model.js";
 export const addtoWishlist = async (req, res) => {
 
     try {
-        const { userId, productId } = req.body;
+        const { userId, productId } = req.body || {};
 
         const user = await UserModel.findById(userId);
         if (!user) return res.status(404).json({ message: "User not found" });
@@ -44,10 +44,10 @@ export const getWishlist = async (req, res) => {
 
     const id = req?.params?.userId;
     try {
-        const user = await UserModel.findOne(id);
+        const user = await UserModel.findById(id);
         if (!user) return res.status(404).json({ message: "User not found" });
 
-        const products = await ProductModel.find({ id: { $in: user.wishlist } });
+        const products = await ProductModel.find({ _id: { $in: user.wishlist } });
         res.json({ products });
     } catch (err) {
         console.error(err);
