@@ -25,7 +25,7 @@ const MeasurementsSchema = new mongoose.Schema(
         sleeve_length: { type: Number },
         dress_length: { type: Number },
     },
-    { timestamps: true}
+    { _id: false }
 );
 
 const MeasurementProfileSchema = new mongoose.Schema(
