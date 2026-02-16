@@ -6,14 +6,18 @@ import ProductModel from "../Models/product.model.js";
 export const getCart = async (req, res) => {
 
     try {
-        const cart = await CartModel.findOne({ userId: req.params.userId });
+        const userId = req.params.userId;
+        if (!userId) {
+            res.status(400).json({ success: false, message: "UserId Required" });
+        }
+        const cart = await CartModel.findOne({ userId });
         if (!cart) return res.json({ items: [], total: 0 });
 
         let total = 0;
         const items = [];
 
         for (const item of cart.items) {
-            const product = await ProductModel.findOne({ id: item.productId });
+            const product = await ProductModel.findById(item.productId);
             if (!product) continue;
 
             const price = product.discountPrice || product.price;
@@ -48,7 +52,9 @@ export const addCart = async (req, res) => {
 
     try {
         const { userId, productId, size, quantity, fitAdjustment } = req.body;
-
+        if (!userId) {
+            res.status(400).json({ success: false, message: "UserId Required" });
+        }
         let cart = await CartModel.findOne({ userId });
 
         if (!cart) {
@@ -74,21 +80,22 @@ export const addCart = async (req, res) => {
 
 export const updateCart = async (req, res) => {
     try {
-        const { userId, productId, size, quantity } = req.body;
+        const { userId, productId, size, quantity } = req.body || {};
 
         const cart = await CartModel.findOne({ userId });
         if (!cart) {
             return res.status(404).json({ message: "Cart not found" });
         }
 
-        const item = cart.items.find(i => i.productId === productId && i.size === size);
+        const item = cart.items.find(
+            i => i.productId.toString() === productId && i.size === size
+        );
+
         if (!item) {
             return res.status(404).json({ message: "Item not found in cart" });
         }
 
-        item.quantity = quantity; // 👈 SET, not add
-
-        cart.updatedAt = new Date();
+        item.quantity = quantity;
         await cart.save();
 
         res.json({ success: true, message: "Cart updated" });
@@ -111,14 +118,13 @@ export const removeFromCart = async (req, res) => {
         const initialLength = cart.items.length;
 
         cart.items = cart.items.filter(
-            (item) => !(item.productId === productId && item.size === size)
+            (item) => !(item.productId.toString() === productId && item.size === size)
         );
 
         if (cart.items.length === initialLength) {
             return res.status(404).json({ success: false, message: "Item not found in cart" });
         }
 
-        cart.updatedAt = new Date();
         await cart.save();
 
         return res.json({ success: true, message: "Item removed from cart" });

@@ -13,6 +13,7 @@ const CouponSchema = new mongoose.Schema({
   eligibleCategories: [String],
   firstOrderOnly: { type: Boolean, default: false },
   isActive: { type: Boolean, default: true },
+  description: { type: String }
 }, { timestamps: true });
 
 const CouponModel =

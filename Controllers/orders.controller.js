@@ -7,21 +7,17 @@ import CouponModel from "../Models/coupon.model.js";
 
 export const createOrder = async (req, res) => {
     try {
-        const { userId, shippingAddressId, couponCode } = req.body;
-
-        // 1️⃣ Get cart
-        const cart = await CartModel.findOne({ userId });
+        const { userId, shippingAddressId, couponCode } = req.body || {};
+        const cart = await CartModel.findOne({ userId })
         if (!cart || !cart.items.length) {
             return res.status(400).json({ message: "Cart is empty" });
         }
-
-        // 2️⃣ Get user
-        const user = await UserModel.findOne({ id: userId });
+        const user = await UserModel.findById(userId);
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
 
-        const address = user.addresses.find(a => a.id === shippingAddressId);
+        const address = user.addresses.find(a => a._id.toString() === shippingAddressId);
         if (!address) {
             return res.status(404).json({ message: "Address not found" });
         }
@@ -32,7 +28,7 @@ export const createOrder = async (req, res) => {
         const orderItems = [];
 
         for (const item of cart.items) {
-            const product = await ProductModel.findOne({ id: item.productId });
+            const product = await ProductModel.findById(item.productId);
             if (!product) continue;
 
             const price = product.discountPrice || product.price;
@@ -42,15 +38,15 @@ export const createOrder = async (req, res) => {
             if (item.fitAdjustment) {
                 fitFee += (item.fitAdjustment.fee || 0) * item.quantity;
             }
-
             orderItems.push({
-                productId: item.productId,
-                productName: product.name,
-                productImage: product.images?.[0] || "",
+                name: product.name,              
+                image: product.images?.[0] || "",  
                 size: item.size,
                 quantity: item.quantity,
-                price,
-                fitAdjustment: item.fitAdjustment,
+                price: price,
+                discountPrice: product.discountPrice || 0,
+                fitAdjustment: !!item.fitAdjustment,
+                fitAdjustmentFee: item.fitAdjustment?.fee || 0,
             });
         }
 
@@ -96,7 +92,7 @@ export const createOrder = async (req, res) => {
             deliveryFee,
             total,
             couponCode: couponCode || null,
-            orderStatus: hasFitAdjustment ? "fit_adjustment_in_progress" : "processing",
+            orderStatus: hasFitAdjustment ? "processing" : "placed",
             estimatedDelivery,
         });
 
@@ -108,7 +104,6 @@ export const createOrder = async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 };
-
 
 export const getOrdersbyuserId = async (req, res) => {
 
@@ -125,7 +120,7 @@ export const getOrderDetail = async (req, res) => {
     try {
         const { orderId } = req.params;
 
-        const order = await OrderModel.findOne({ id: orderId });
+        const order = await OrderModel.findById(orderId);
         if (!order) {
             return res.status(404).json({ message: "Order not found" });
         }
@@ -133,7 +128,88 @@ export const getOrderDetail = async (req, res) => {
         res.status(200).json(order);
     } catch (err) {
         console.error(err);
-        res.status(500).json({success:false, message: "Server error" });
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+
+export const getAllOrders = async (req, res) => {
+    try {
+        const {
+            page = 1,
+            limit = 10,
+            search = "",
+            orderStatus,
+            paymentStatus,
+            startDate,
+            endDate,
+            sortBy = "createdAt",
+            sortOrder = "desc",
+        } = req.query;
+
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+
+        const filter = {};
+
+        // 🔎 Search filter (orderNumber, shipping name, phone)
+        if (search) {
+            filter.$or = [
+                { orderNumber: { $regex: search, $options: "i" } },
+                { "shippingAddress.fullName": { $regex: search, $options: "i" } },
+                { "shippingAddress.phone": { $regex: search, $options: "i" } },
+                { couponCode: { $regex: search, $options: "i" } },
+            ];
+        }
+
+        // 📦 Order status filter
+        if (orderStatus) {
+            filter.orderStatus = orderStatus;
+        }
+
+        // 💳 Payment status filter
+        if (paymentStatus) {
+            filter.paymentStatus = paymentStatus;
+        }
+
+        // 📅 Date range filter
+        if (startDate || endDate) {
+            filter.createdAt = {};
+            if (startDate) {
+                filter.createdAt.$gte = new Date(startDate);
+            }
+            if (endDate) {
+                filter.createdAt.$lte = new Date(endDate);
+            }
+        }
+
+        // 🔃 Sorting
+        const sort = {
+            [sortBy]: sortOrder === "asc" ? 1 : -1,
+        };
+
+        // 📊 Total count (for pagination UI)
+        const totalOrders = await OrderModel.countDocuments(filter);
+
+        // 📥 Fetch paginated orders
+        const orders = await OrderModel.find(filter)
+            .sort(sort)
+            .skip((pageNum - 1) * limitNum)
+            .limit(limitNum)
+            .lean();
+
+        res.status(200).json({
+            success: true,
+            data: orders,
+            pagination: {
+                total: totalOrders,
+                page: pageNum,
+                limit: limitNum,
+                totalPages: Math.ceil(totalOrders / limitNum),
+            },
+        });
+    } catch (err) {
+        console.error("Admin getAllOrders error:", err);
+        res.status(500).json({ success: false, message: "Server error" });
     }
 };
 

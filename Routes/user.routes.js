@@ -6,11 +6,11 @@ import { authentication } from "../Middlewares/authentication.js";
 const userRouter = Router();
 
 userRouter.get("/get-address/:userId", authentication, getUserAddress);
-userRouter.post("/add-address/:userId", authentication, addUserAddress);
+userRouter.post("/add-address", authentication, addUserAddress);
 
 
 userRouter.get("/get-measurements/:userId", authentication, getUserMeasurement);
-userRouter.post("/add-measurements/:userId", authentication, addUserMeasurement);
+userRouter.post("/add-measurements", authentication, addUserMeasurement);
 userRouter.post("/validate-measurements/:userId", authentication, validateMeasurement);
 
 
