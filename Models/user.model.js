@@ -13,7 +13,7 @@ const AddressSchema = new mongoose.Schema(
         country: { type: String, default: "Qatar" },
         isDefault: { type: Boolean, default: false },
     },
-    { timestamps: true}
+    { timestamps: true }
 );
 
 const MeasurementsSchema = new mongoose.Schema(
@@ -37,7 +37,7 @@ const MeasurementProfileSchema = new mongoose.Schema(
         },
         notes: { type: String, trim: true },
     },
-    { timestamps: true}
+    { timestamps: true }
 );
 
 const UserSchema = new mongoose.Schema(
@@ -50,7 +50,10 @@ const UserSchema = new mongoose.Schema(
         isAdmin: { type: Boolean, default: false },
         addresses: [AddressSchema],
         measurementProfiles: [MeasurementProfileSchema],
-        wishlist: [{ type: String }],
+        wishlist: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Product",
+        }],
     },
     { timestamps: true }
 );
