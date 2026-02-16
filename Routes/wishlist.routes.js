@@ -5,8 +5,8 @@ import { authentication } from "../Middlewares/authentication.js";
 const wishlistRouter = Router();
 
 wishlistRouter.post("/add", authentication, addtoWishlist);
-wishlistRouter.delete("/remove/:id", authentication, removefromWishlist);
-wishlistRouter.get("/get", authentication, getWishlist);
+wishlistRouter.delete("/remove", authentication, removefromWishlist);
+wishlistRouter.get("/get/:userId", authentication, getWishlist);
 
 
 export default wishlistRouter;
