@@ -1,7 +1,11 @@
 import mongoose from "mongoose";
 
 const CartItemSchema = new mongoose.Schema({
-  productId: String,
+  productId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Product",
+    required: true,
+  },
   size: String,
   quantity: { type: Number, default: 1 },
   fitAdjustment: Object,
@@ -10,8 +14,7 @@ const CartItemSchema = new mongoose.Schema({
 const CartSchema = new mongoose.Schema({
   userId: String,
   items: [CartItemSchema],
-  updatedAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
-const CartModel = mongoose.model("Cart", CartSchema);
+const CartModel = mongoose.models.Cart || mongoose.model("Cart", CartSchema);
 export default CartModel;

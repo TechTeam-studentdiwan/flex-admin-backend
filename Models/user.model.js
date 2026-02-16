@@ -13,16 +13,31 @@ const AddressSchema = new mongoose.Schema(
         country: { type: String, default: "Qatar" },
         isDefault: { type: Boolean, default: false },
     },
-    { timestamps: true }
+    { timestamps: true, _id: false }
+);
+
+const MeasurementsSchema = new mongoose.Schema(
+    {
+        bust: { type: Number, required: true },
+        waist: { type: Number, required: true },
+        hips: { type: Number, required: true },
+        shoulder: { type: Number, required: true },
+        sleeve_length: { type: Number },
+        dress_length: { type: Number },
+    },
+    { _id: false }
 );
 
 const MeasurementProfileSchema = new mongoose.Schema(
     {
-        profileName: { type: String, trim: true, required: true },
-        measurements: { type: Object, default: {} },
+        profileName: { type: String, trim: true, required: true }, // e.g. "My Size", "Mom", "Office Wear"
+        measurements: {
+            type: MeasurementsSchema,
+            required: true,
+        },
         notes: { type: String, trim: true },
     },
-    { timestamps: true }
+    { timestamps: true, _id: false }
 );
 
 const UserSchema = new mongoose.Schema(
