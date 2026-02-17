@@ -1,130 +1,8 @@
-
 import UserModel from "../Models/user.model.js";
 import bcrypt from 'bcrypt'
-import jwt from 'jsonwebtoken'
-
-
-const generateToken = (user) => {
-    return jwt.sign(
-        {
-            userId: user._id,
-            email: user.email,
-            isGuest: user.isGuest,
-            isAdmin: user.isAdmin,
-        },
-        process.env.JWT_TOKEN,
-        { expiresIn: "1d" }
-    );
-};
-
-const sendTokenCookie = (res, user) => {
-    const token = generateToken(user);
-
-    res.cookie("userToken", token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 24 * 60 * 60 * 1000,
-    });
-
-    return token;
-};
-
-
-export const registerUser = async (req, res) => {
-    try {
-        const { email, password, name, phone, isAdmin } = req.body;
-        if (!email || !password || !name) {
-            return res.status(400).json({ success: false, message: "All fields required" });
-        }
-
-        const exists = await UserModel.findOne({ email });
-        if (exists) {
-            return res.status(400).json({ success: false, message: "Email already registered" });
-        }
-
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-
-        const user = await UserModel.create({
-            email,
-            password: hashedPassword,
-            name,
-            phone,
-            isAdmin,
-            isGuest: false,
-        });
-
-        sendTokenCookie(res, user);
-        const u = user.toObject();
-        delete u.password;
-
-        res.json({
-            success: true,
-            user: u,
-            message: "Registration successful",
-        });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ success: false, message: "Server error" });
-    }
-};
-
-
-export const loginUser = async (req, res) => {
-    const { email, password } = req.body;
-    if (!email || !password) {
-        return res.status(400).json({ success: false, message: "Email & Password Required" });
-    }
-    try {
-        const user = await UserModel.findOne({ email });
-        if (!user) {
-            return res.status(400).json({ success: false, message: "Invalid email" });
-        }
-
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return res.status(400).json({ success: false, message: "Incorrect password" });
-        }
-
-        sendTokenCookie(res, user);
-
-        const u = user.toObject();
-        delete u.password;
-
-        res.json({
-            success: true,
-            user: u,
-            message: "Login successful",
-        });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ success: false, message: "Server error" });
-    }
-};
-
-
-export const guestUser = async (req, res) => {
-    try {
-        const user = await UserModel.create({
-            isGuest: true,
-            name: `Guest${Math.floor(Math.random() * 9000 + 1000)}`,
-        });
-
-        sendTokenCookie(res, user);
-
-        res.json({
-            success: true,
-            user,
-            message: "Guest session created",
-        });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ success: false, message: "Server error" });
-    }
-};
-
-
+import ProductModel from "../Models/product.model.js";
+import OrderModel from "../Models/order.model.js";
+import CouponModel from "../Models/coupon.model.js";
 
 export const updateUserProfile = async (req, res) => {
     try {
@@ -235,4 +113,75 @@ export const getAllUsersByAdmin = async (req, res) => {
     }
 };
 
+
+
+export const getAdminDashboardOverview = async (req, res) => {
+  try {
+    const [
+      totalUsers,
+      totalProducts,
+      activeCoupons,
+      totalOrders,
+      pendingOrders,
+      revenueAgg,
+      recentOrders,
+    ] = await Promise.all([
+      // 1) Non-admin users count
+      UserModel.countDocuments({ isAdmin: false }),
+
+      // 2) Total products
+      ProductModel.countDocuments({}),
+
+      // 3) Active coupons
+      CouponModel.countDocuments({ isActive: true }),
+
+      // 4) Total orders
+      OrderModel.countDocuments({}),
+
+      // 5) Pending orders
+      OrderModel.countDocuments({ orderStatus: "pending" }),
+
+      // 6) Total revenue (only paid, exclude failed/refunded)
+      OrderModel.aggregate([
+        { $match: { paymentStatus: "paid" } },
+        {
+          $group: {
+            _id: null,
+            totalRevenue: { $sum: "$total" },
+          },
+        },
+      ]),
+
+      // 7) Recent 5 orders
+      OrderModel.find({})
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .select(
+          "orderNumber userId total paymentStatus orderStatus createdAt shippingAddress.fullName shippingAddress.phone"
+        )
+        .lean(),
+    ]);
+
+    const totalRevenue = revenueAgg.length ? revenueAgg[0].totalRevenue : 0;
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        totalUsers,
+        totalProducts,
+        activeCoupons,
+        totalOrders,
+        pendingOrders,
+        totalRevenue,
+        recentOrders,
+      },
+    });
+  } catch (err) {
+    console.error("Admin dashboard overview error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while loading dashboard",
+    });
+  }
+};
 
