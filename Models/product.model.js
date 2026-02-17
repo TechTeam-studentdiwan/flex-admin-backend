@@ -26,6 +26,7 @@ const ProductSchema = new mongoose.Schema(
     images: [String],
     sizes: [String],
     fitAdjustmentEnabled: Boolean,
+    fitAdjustmentFee: Number,
     sizeChart: {
       type: [SizeChartSchema],
       default: [],
