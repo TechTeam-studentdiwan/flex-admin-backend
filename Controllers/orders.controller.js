@@ -102,7 +102,7 @@ export const createOrder = async (req, res) => {
             deliveryFee,
             total,
             couponCode: couponCode || null,
-            orderStatus: hasFitAdjustment ? "processing" : "placed",
+            orderStatus: "pending",
             estimatedDelivery,
         });
 
