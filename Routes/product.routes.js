@@ -12,7 +12,7 @@ import { adminOnly } from "../Middlewares/admin.js";
 const productRouter = Router();
 
 productRouter.get("/get-products", authentication, getProducts);
-productRouter.get("/getbyid/:userId", authentication, getProductbyId);
+productRouter.get("/getbyid/:id", authentication, getProductbyId);
 productRouter.post("/add", authentication, adminOnly, addProduct);
 productRouter.put("/update/:id", authentication, adminOnly, updateProduct);
 productRouter.delete("/delete/:id", authentication, adminOnly, deleteProduct);
