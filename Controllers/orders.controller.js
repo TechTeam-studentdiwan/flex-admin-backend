@@ -39,8 +39,8 @@ export const createOrder = async (req, res) => {
                 fitFee += (item.fitAdjustment.fee || 0) * item.quantity;
             }
             orderItems.push({
-                name: product.name,              
-                image: product.images?.[0] || "",  
+                name: product.name,
+                image: product.images?.[0] || "",
                 size: item.size,
                 quantity: item.quantity,
                 price: price,
@@ -48,6 +48,15 @@ export const createOrder = async (req, res) => {
                 fitAdjustment: !!item.fitAdjustment,
                 fitAdjustmentFee: item.fitAdjustment?.fee || 0,
             });
+        }
+        let deliveryFee = 0;
+
+        const adminUser = await UserModel.findOne({ isAdmin: true });
+
+        if (adminUser && typeof adminUser.deliveryfee === "number") {
+            deliveryFee = adminUser.deliveryfee;
+        } else {
+            deliveryFee = subtotal < 200 ? 15 : 0;
         }
 
         let discount = 0;
@@ -69,11 +78,12 @@ export const createOrder = async (req, res) => {
                 } else if (coupon.type === "flat") {
                     discount = coupon.value;
                 }
+                else if (coupon.type === "freedelivery") {
+                    discount = deliveryFee;
+                }
             }
         }
 
-
-        const deliveryFee = subtotal < 200 ? 15 : 0;
         const total = subtotal - discount + fitFee + deliveryFee;
 
         let extraDays = 5;
@@ -104,6 +114,59 @@ export const createOrder = async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 };
+
+export const updateOrderByAdmin = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const {
+            orderStatus,
+            paymentStatus,
+            estimatedDelivery,
+            trackingNumber,
+        } = req.body || {};
+
+        const updateData = {};
+
+        if (orderStatus !== undefined) updateData.orderStatus = orderStatus;
+        if (paymentStatus !== undefined) updateData.paymentStatus = paymentStatus;
+        if (trackingNumber !== undefined) updateData.trackingNumber = trackingNumber;
+        if (estimatedDelivery !== undefined)
+            updateData.estimatedDelivery = new Date(estimatedDelivery);
+
+        if (Object.keys(updateData).length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: "No fields provided to update",
+            });
+        }
+
+        const order = await OrderModel.findByIdAndUpdate(
+            orderId,
+            { $set: updateData },
+            { new: true, runValidators: true }
+        );
+
+        if (!order) {
+            return res.status(404).json({
+                success: false,
+                message: "Order not found",
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Order updated successfully",
+            order,
+        });
+    } catch (err) {
+        console.error("Update order by admin error:", err);
+        return res.status(500).json({
+            success: false,
+            message: "Server error",
+        });
+    }
+};
+
 
 export const getOrdersbyuserId = async (req, res) => {
 
