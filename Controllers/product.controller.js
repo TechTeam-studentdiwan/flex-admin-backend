@@ -100,7 +100,7 @@ export const getProducts = async (req, res) => {
 };
 
 export const getProductbyId = async (req, res) => {
-    const product = await ProductModel.findOne({ id: req.params.id }).populate("category")
+    const product = await ProductModel.findOne({ _id: req.params.id }).populate("category")
     if (!product) return res.status(404).json({ success: false, message: "Product not found" });
     res.status(200).json({ success: true, product });
 };
