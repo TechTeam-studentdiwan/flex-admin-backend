@@ -124,5 +124,53 @@ export const guestUser = async (req, res) => {
     }
 };
 
+export const updateUserProfile = async (req, res) => {
+  try {
+    const { userId } = req.params; 
+    const { name, email, phone, deliveryfee } = req?.body;
+
+    const updateData = {};
+
+    if (name !== undefined) updateData.name = name;
+    if (email !== undefined) updateData.email = email;
+    if (phone !== undefined) updateData.phone = phone;
+
+
+    const user = await UserModel.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+ 
+    if (deliveryfee !== undefined) {
+      if (!user.isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: "Only admin can update delivery fee",
+        });
+      }
+      updateData.deliveryfee = deliveryfee;
+    }
+
+    const updatedUser = await UserModel.findByIdAndUpdate(
+      userId,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    ).select("-password"); 
+
+    return res.json({
+      success: true,
+      message: "User profile updated successfully",
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.error("Update user profile error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while updating profile",
+    });
+  }
+};
 
 

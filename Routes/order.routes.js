@@ -1,11 +1,12 @@
 import { Router } from "express";
-import { createOrder, getOrdersbyuserId, getOrderDetail, getAllOrders } from "../Controllers/orders.controller.js";
+import { createOrder, getOrdersbyuserId, getOrderDetail, getAllOrders, updateOrderByAdmin } from "../Controllers/orders.controller.js";
 import { authentication } from "../Middlewares/authentication.js";
 import { adminOnly } from "../Middlewares/admin.js";
 
 const orderRouter = Router();
 
 orderRouter.post("/create", authentication, createOrder);
+orderRouter.post("/update", authentication, adminOnly, updateOrderByAdmin);
 orderRouter.get("/getordersbyuser/:userId", authentication, getOrdersbyuserId);
 orderRouter.get("/getorderdetails/:orderId", authentication, getOrderDetail);
 orderRouter.get("/getallorders", authentication, adminOnly, getAllOrders);

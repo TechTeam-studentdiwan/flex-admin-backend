@@ -48,6 +48,7 @@ const UserSchema = new mongoose.Schema(
         password: { type: String },
         isGuest: { type: Boolean, default: false },
         isAdmin: { type: Boolean, default: false },
+        deliveryfee: Number,
         addresses: [AddressSchema],
         measurementProfiles: [MeasurementProfileSchema],
         wishlist: [{

@@ -24,7 +24,7 @@ const OrderItemSchema = new mongoose.Schema(
         quantity: { type: Number, required: true },
         price: { type: Number, required: true },
         discountPrice: { type: Number, default: 0 },
-        fitAdjustment: { type: Boolean, default: false },
+        fitAdjustment: { type: Object },
         fitAdjustmentFee: { type: Number, default: 0 },
     },
     { _id: false }
