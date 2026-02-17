@@ -11,7 +11,7 @@ import { adminOnly } from "../Middlewares/admin.js";
 const categoryRouter = Router();
 
 categoryRouter.post("/add", authentication, adminOnly, addCategory);
-categoryRouter.get("/getcatagories", authentication, getCategories);
+categoryRouter.get("/getcatagories",  getCategories);
 categoryRouter.put("/update/:id", authentication, adminOnly, updateCategory);
 categoryRouter.delete("/delete/:id", authentication, adminOnly, deleteCategory);
 
