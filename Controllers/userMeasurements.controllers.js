@@ -44,7 +44,7 @@ export const validateMeasurement = async (req, res) => {
         const product = await ProductModel.findById(productId);
         if (!product) return res.status(404).json({ message: "Product not found" });
 
-        const user = await UserModel.findOne({ "measurementProfiles.id": profileId });
+        const user = await UserModel.findOne({ _id: req.params.userId });
         if (!user) return res.status(404).json({ message: "User not found" });
 
         const profile = user.measurementProfiles.find(p => p.id === profileId);
@@ -54,7 +54,8 @@ export const validateMeasurement = async (req, res) => {
             return res.json({ eligible: false, message: "Fit adjustment not available" });
         }
 
-        const sizeChart = product.sizeChart[selectedSize];
+        
+        const sizeChart = product.sizeChart.find((s)=>s.size == selectedSize);
         if (!sizeChart) {
             return res.json({ eligible: false, message: "Size chart not available" });
         }

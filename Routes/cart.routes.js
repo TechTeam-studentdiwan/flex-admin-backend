@@ -6,7 +6,7 @@ const cartRouter = Router();
 cartRouter.get("/:userId", authentication, getCart);
 cartRouter.post("/add-cart", authentication, addCart);
 cartRouter.put("/update", authentication, updateCart);
-cartRouter.delete("/remove", authentication, removeFromCart);
+cartRouter.put("/remove", authentication, removeFromCart);
 
 
 export default cartRouter;
