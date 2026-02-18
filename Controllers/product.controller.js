@@ -55,14 +55,26 @@ export const deleteProduct = async (req, res) => {
 };
 
 export const getProducts = async (req, res) => {
-
     try {
-        const { category, search, minPrice, maxPrice, sort = "popular", limit = 20, skip = 0 } = req.query;
+        const { 
+            category, 
+            search, 
+            minPrice, 
+            maxPrice, 
+            occasion, 
+            fabric, 
+            fitAdjustmentEnabled, 
+            sort = "popular", 
+            limit = 20, 
+            skip = 0 
+        } = req.query;
 
         let query = { isActive: true };
 
+        // 1. Category Filter
         if (category) query.category = category;
 
+        // 2. Search Filter
         if (search) {
             query.$or = [
                 { name: { $regex: search, $options: "i" } },
@@ -70,10 +82,34 @@ export const getProducts = async (req, res) => {
             ];
         }
 
+        // 3. Occasion & Fabric Filters
+        if (occasion) query.occasion = occasion;
+        if (fabric) query.fabric = fabric;
+
+        // 4. Fit Adjustment Filter
+        if (fitAdjustmentEnabled === 'true' || fitAdjustmentEnabled === true) {
+            query.fitAdjustmentEnabled = true;
+        }
+
+        // 5. Price Range Filter
         if (minPrice || maxPrice) {
-            query.$or = [
-                { discountPrice: { $gte: Number(minPrice || 0), $lte: Number(maxPrice || 999999) } },
-                { discountPrice: null, price: { $gte: Number(minPrice || 0), $lte: Number(maxPrice || 999999) } },
+            const min = Number(minPrice || 0);
+            const max = Number(maxPrice || 999999);
+            
+            // This checks both discountPrice (if it exists) OR standard price
+            query.$and = [
+                {
+                    $or: [
+                        { discountPrice: { $exists: true, $ne: null } },
+                        { price: { $exists: true } }
+                    ]
+                },
+                {
+                    $or: [
+                        { discountPrice: { $gte: min, $lte: max } },
+                        { $and: [{ discountPrice: null }, { price: { $gte: min, $lte: max } }] }
+                    ]
+                }
             ];
         }
 
