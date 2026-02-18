@@ -24,7 +24,6 @@ export const getUserAddress = async (req, res) => {
     try {
         const user = await UserModel.findById(id);
         if (!user) return res.status(404).json({ message: "User not found" });
-
         res.json({ addresses: user.addresses });
     } catch (err) {
         console.error(err);
@@ -32,4 +31,40 @@ export const getUserAddress = async (req, res) => {
     }
 };
 
+export const removeUserAddress = async (req, res) => {
+  try {
+    const { userId, addressId } = req.body;
+
+    if (!userId || !addressId) {
+      return res.status(400).json({ message: "userId and addressId are required" });
+    }
+
+    const user = await UserModel.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const beforeCount = user.addresses.length;
+
+    // 🗑️ Remove the address by _id
+    user.addresses = user.addresses.filter(
+      (addr) => addr._id.toString() !== addressId.toString()
+    );
+
+    if (user.addresses.length === beforeCount) {
+      return res.status(404).json({ message: "Address not found" });
+    }
+
+    await user.save();
+
+    return res.json({
+      success: true,
+      message: "Address removed successfully",
+      addresses: user.addresses, // return updated list (optional but useful)
+    });
+  } catch (err) {
+    console.error("Remove address error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
 

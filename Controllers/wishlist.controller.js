@@ -25,8 +25,7 @@ export const addtoWishlist = async (req, res) => {
 export const removefromWishlist = async (req, res) => {
 
     try {
-        const { userId, productId } = req.body;
-
+        const { userId, productId } = req?.body;
         const user = await UserModel.findById(userId);
         if (!user) return res.status(404).json({ message: "User not found" });
 
