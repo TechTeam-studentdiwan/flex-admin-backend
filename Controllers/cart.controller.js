@@ -32,6 +32,7 @@ export const getCart = async (req, res) => {
                 productName: product.name,
                 productImage: product.images?.[0] || "",
                 price,
+                _id:item._id,
                 size: item.size,
                 quantity: item.quantity,
                 fitAdjustment: item.fitAdjustment,
@@ -80,7 +81,7 @@ export const addCart = async (req, res) => {
 
 export const updateCart = async (req, res) => {
     try {
-        const { userId, productId, size, quantity } = req.body || {};
+        const { userId, itemId, size, quantity } = req.body || {};
 
         const cart = await CartModel.findOne({ userId });
         if (!cart) {
@@ -88,7 +89,7 @@ export const updateCart = async (req, res) => {
         }
 
         const item = cart.items.find(
-            i => i.productId.toString() === productId && i.size === size
+            i => i._id.toString() === itemId.toString() 
         );
 
         if (!item) {
@@ -108,7 +109,7 @@ export const updateCart = async (req, res) => {
 
 export const removeFromCart = async (req, res) => {
     try {
-        const { userId, productId, size } = req.body;
+        const { userId, itemId, size } = req.body;
 
         const cart = await CartModel.findOne({ userId });
         if (!cart) {
@@ -118,7 +119,7 @@ export const removeFromCart = async (req, res) => {
         const initialLength = cart.items.length;
 
         cart.items = cart.items.filter(
-            (item) => !(item.productId.toString() === productId && item.size === size)
+            (item) => !(item._id.toString() === itemId.toString() )
         );
 
         if (cart.items.length === initialLength) {
