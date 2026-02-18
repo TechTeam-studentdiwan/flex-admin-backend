@@ -20,9 +20,8 @@ export const getUserMeasurement = async (req, res) => {
 export const addUserMeasurement = async (req, res) => {
 
     try {
-           console.log(req.body)
         const { userId, profile } = req?.body;
-     
+
         const user = await UserModel.findById(userId);
         if (!user) return res.status(404).json({ message: "User not found" });
 
@@ -54,8 +53,8 @@ export const validateMeasurement = async (req, res) => {
             return res.json({ eligible: false, message: "Fit adjustment not available" });
         }
 
-        
-        const sizeChart = product.sizeChart.find((s)=>s.size == selectedSize);
+
+        const sizeChart = product.sizeChart.find((s) => s.size == selectedSize);
         if (!sizeChart) {
             return res.json({ eligible: false, message: "Size chart not available" });
         }
@@ -88,5 +87,42 @@ export const validateMeasurement = async (req, res) => {
         res.status(500).json({ success: false, message: "Server error" });
     }
 };
+
+export const removeUserMeasurement = async (req, res) => {
+    try {
+        const { userId, profileId } = req.params;
+        const user = await UserModel.findById(userId);
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        const profileIndex = user.measurementProfiles.findIndex(
+            (p) => p._id.toString() === profileId
+        );
+
+        if (profileIndex === -1) {
+            return res.status(404).json({
+                success: false,
+                message: "Measurement profile not found",
+            });
+        }
+
+        // Remove the profile
+        user.measurementProfiles.splice(profileIndex, 1);
+        await user.save();
+
+        return res.json({
+            success: true,
+            message: "Measurement profile removed successfully",
+        });
+    } catch (err) {
+        console.error("Remove measurement error:", err);
+        return res.status(500).json({
+            success: false,
+            message: "Server error",
+        });
+    }
+};
+
 
 
