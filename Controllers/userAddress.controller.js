@@ -22,6 +22,7 @@ export const addUserAddress = async (req, res) => {
 export const getUserAddress = async (req, res) => {
     const id = req.params.userId;
     try {
+        if(!id) return res.status(400).json({ message: "UserId not found" });
         const user = await UserModel.findById(id);
         if (!user) return res.status(404).json({ message: "User not found" });
         res.json({ addresses: user.addresses });

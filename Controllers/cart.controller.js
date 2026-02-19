@@ -7,6 +7,7 @@ export const getCart = async (req, res) => {
 
     try {
         const userId = req.params.userId;
+          if(!userId) return res.status(400).json({ message: "UserId not found" });
         if (!userId) {
             res.status(400).json({ success: false, message: "UserId Required" });
         }
