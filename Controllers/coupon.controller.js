@@ -1,4 +1,5 @@
 import CouponModel from "../Models/coupon.model.js";
+import OrderModel from "../Models/order.model.js";
 
 export const createCoupon = async (req, res) => {
     try {
@@ -77,17 +78,26 @@ export const validateCoupon = async (req, res) => {
 
     try {
         const { code, cartTotal, userId } = req.body;
-
         const coupon = await CouponModel.findOne({ code, isActive: true });
         if (!coupon) return res.status(404).json({ message: "Invalid coupon code" });
-
         const now = new Date();
         if (!(coupon.validFrom <= now && now <= coupon.validTo)) {
-            return res.status(400).json({ message: "Coupon has expired" });
+            return res.json({ message: "Coupon has expired" });
+        }
+        if (cartTotal < coupon.minCartValue) {
+            return res.json({ message: `Minimum cart value is QAR ${coupon.minCartValue}` });
         }
 
-        if (cartTotal < coupon.minCartValue) {
-            return res.status(400).json({ message: `Minimum cart value is QAR ${coupon.minCartValue}` });
+        const alreadyUsed = await OrderModel.findOne({
+            userId,
+            couponCode: code,
+            paymentStatus: "paid", 
+        });
+
+        if (alreadyUsed) {
+            return res.json({
+                message: "You have already used this coupon",
+            });
         }
 
         let discount = 0;
@@ -101,6 +111,7 @@ export const validateCoupon = async (req, res) => {
         }
 
         res.json({
+            success: true,
             valid: true,
             discount,
             message: `Coupon applied! You saved QAR ${discount.toFixed(2)}`,

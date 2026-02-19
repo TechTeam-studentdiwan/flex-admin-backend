@@ -17,10 +17,7 @@ import categoryRouter from "./Routes/category.routes.js";
 dotenv.config();
 
 const app = express();
-app.use(
-    cors()
-);
-
+app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
 
@@ -35,7 +32,7 @@ app.use("/categories", categoryRouter);
 
 
 const PORT = process.env.PORT || 8000;
-app.listen(PORT, '0.0.0.0', async () => {
+app.listen(PORT, async () => {
     try {
         await connectDB;
         console.log(
