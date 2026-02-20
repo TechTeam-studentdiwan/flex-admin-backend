@@ -12,6 +12,7 @@ import productRouter from "./Routes/product.routes.js";
 import userRouter from "./Routes/user.routes.js";
 import wishlistRouter from "./Routes/wishlist.routes.js";
 import categoryRouter from "./Routes/category.routes.js";
+import offerRoutes from "./Routes/offer.routes.js";
 
 
 dotenv.config();
@@ -29,7 +30,7 @@ app.use("/products", productRouter);
 app.use("/user", userRouter);
 app.use("/wishlist", wishlistRouter);
 app.use("/categories", categoryRouter);
-
+app.use("/offers", offerRoutes);
 
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, async () => {
