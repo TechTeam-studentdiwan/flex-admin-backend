@@ -34,7 +34,7 @@ export const authentication = async (req, res, next) => {
 
         req.user = user;
 
-        next();
+       next();
     } catch (err) {
         console.error(err);
         return res.status(401).json({ success: false, message: "Not authorized, invalid token" });
