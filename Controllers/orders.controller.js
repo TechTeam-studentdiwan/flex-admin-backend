@@ -173,7 +173,7 @@ export const createOrder = async (req, res) => {
         if (hasFitAdjustment) extraDays += 3;
 
         const estimatedDelivery = new Date(Date.now() + extraDays * 24 * 60 * 60 * 1000);
-
+          const tord = await OrderModel.countDocuments();
         const order = await OrderModel.create({
             userId,
             items: orderItems,
@@ -183,6 +183,7 @@ export const createOrder = async (req, res) => {
             fitAdjustmentFee: fitFee,
             deliveryFee,
             total,
+            orderNumber:tord+1,
             couponCode: couponCode || null,
             orderStatus: "pending",
             estimatedDelivery,

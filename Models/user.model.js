@@ -46,6 +46,7 @@ const UserSchema = new mongoose.Schema(
         email: { type: String, trim: true, lowercase: true, index: true },
         name: { type: String, trim: true },
         password: { type: String },
+        terms: { type: String },
         isGuest: { type: Boolean, default: false },
         isAdmin: { type: Boolean, default: false },
         deliveryfee: Number,
