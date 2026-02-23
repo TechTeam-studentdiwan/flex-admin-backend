@@ -54,6 +54,11 @@ const OrderSchema = new mongoose.Schema(
             enum: ["pending", "paid", "failed", "refunded"],
             default: "pending",
         },
+        paymentReferenceId: {
+            type: String,
+
+            default: "N/A",
+        },
 
         orderStatus: {
             type: String,
