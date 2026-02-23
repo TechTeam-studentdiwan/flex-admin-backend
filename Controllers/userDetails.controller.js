@@ -7,7 +7,7 @@ import CouponModel from "../Models/coupon.model.js";
 export const updateUserProfile = async (req, res) => {
     try {
         const { userId } = req.params;
-        const { name, email, phone, deliveryfee, password } = req.body || {};
+        const { name, email, phone, deliveryfee, password,terms } = req.body || {};
 
         const updateData = {};
 
@@ -36,6 +36,7 @@ export const updateUserProfile = async (req, res) => {
                 });
             }
             updateData.deliveryfee = deliveryfee;
+            updateData.terms = terms;
         }
 
         const updatedUser = await UserModel.findByIdAndUpdate(
