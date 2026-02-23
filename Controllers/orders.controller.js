@@ -183,7 +183,7 @@ export const createOrder = async (req, res) => {
             fitAdjustmentFee: fitFee,
             deliveryFee,
             total,
-            orderNumber:tord+1,
+            orderNumber:1000+tord+1,
             couponCode: couponCode || null,
             orderStatus: "pending",
             estimatedDelivery,
