@@ -186,3 +186,30 @@ export const getAdminDashboardOverview = async (req, res) => {
   }
 };
 
+
+export const getTerms = async (req, res) => {
+  try {
+    const adminUser = await UserModel.findOne({ isAdmin: true })
+      .select("terms")
+      .lean();
+
+    if (!adminUser || !adminUser.terms) {
+      return res.status(404).json({
+        success: false,
+        message: "Terms not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      terms: adminUser.terms,
+    });
+  } catch (error) {
+    console.error("Get terms error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while fetching terms",
+    });
+  }
+};
+

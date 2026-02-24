@@ -75,51 +75,65 @@ export const getCoupons = async (req, res) => {
 
 
 export const validateCoupon = async (req, res) => {
-
     try {
         const { code, cartTotal, userId } = req.body;
+
         const coupon = await CouponModel.findOne({ code, isActive: true });
-        if (!coupon) return res.status(404).json({ message: "Invalid coupon code" });
-        const now = new Date();
-        if (!(coupon.validFrom <= now && now <= coupon.validTo)) {
-            return res.json({ message: "Coupon has expired" });
-        }
-        if (cartTotal < coupon.minCartValue) {
-            return res.json({ message: `Minimum cart value is QAR ${coupon.minCartValue}` });
+        if (!coupon) {
+            return res.status(404).json({ success: false, message: "Invalid coupon code" });
         }
 
-        const alreadyUsed = await OrderModel.findOne({
+        const now = new Date();
+
+        if (!(coupon.validFrom <= now && now <= coupon.validTo)) {
+            return res.json({ success: false, message: "Coupon has expired" });
+        }
+
+        if (cartTotal < coupon.minCartValue) {
+            return res.json({
+                success: false,
+                message: `Minimum cart value is QAR ${coupon.minCartValue}`,
+            });
+        }
+
+        const usedCount = await OrderModel.countDocuments({
             userId,
             couponCode: code,
-            paymentStatus: "paid", 
+            // orderStatus: { $ne: "cancelled" }
         });
 
-        if (alreadyUsed) {
+        if (usedCount >= coupon.useLimitperUser) {
             return res.json({
-                message: "You have already used this coupon",
+                success: false,
+                message: `You have already used this coupon ${usedCount} time(s). Usage limit reached.`,
             });
         }
 
         let discount = 0;
+
         if (coupon.type === "percentage") {
             discount = (cartTotal * coupon.value) / 100;
-            if (coupon.maxDiscount) discount = Math.min(discount, coupon.maxDiscount);
+            if (coupon.maxDiscount) {
+                discount = Math.min(discount, coupon.maxDiscount);
+            }
         } else if (coupon.type === "flat") {
             discount = coupon.value;
         } else if (coupon.type === "freedelivery") {
             discount = 15;
         }
 
-        res.json({
+        return res.json({
             success: true,
             valid: true,
             discount,
+            remainingUses: coupon.useLimitperUser - usedCount,
             message: `Coupon applied! You saved QAR ${discount.toFixed(2)}`,
         });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Server error" });
+        console.error("Validate coupon error:", err);
+        return res.status(500).json({ success: false, message: "Server error" });
     }
 };
+
 
 

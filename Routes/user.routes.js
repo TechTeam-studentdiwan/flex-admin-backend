@@ -3,7 +3,7 @@ import { addUserAddress, getUserAddress, removeUserAddress } from "../Controller
 import { addUserMeasurement, getUserMeasurement, validateMeasurement, removeUserMeasurement } from "../Controllers/userMeasurements.controllers.js";
 import { authentication } from "../Middlewares/authentication.js";
 import { adminOnly } from "../Middlewares/admin.js";
-import { updateUserProfile, getAllUsersByAdmin, getAdminDashboardOverview } from "../Controllers/userDetails.controller.js";
+import { updateUserProfile, getAllUsersByAdmin, getAdminDashboardOverview, getTerms } from "../Controllers/userDetails.controller.js";
 
 const userRouter = Router();
 // USER ADDRESS ROUTES
@@ -21,6 +21,9 @@ userRouter.delete("/measurements/:userId/:profileId", authentication, removeUser
 userRouter.put("/update-profile/:userId", authentication, adminOnly, updateUserProfile);
 userRouter.get("/get-users", authentication, adminOnly, getAllUsersByAdmin);
 userRouter.get("/get-dashboard-overview", authentication, adminOnly, getAdminDashboardOverview);
+
+
+userRouter.get("/terms", authentication, getTerms)
 
 
 export default userRouter;
