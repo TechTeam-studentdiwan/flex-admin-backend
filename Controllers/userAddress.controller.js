@@ -5,6 +5,9 @@ export const addUserAddress = async (req, res) => {
 
     try {
         const { userId, address } = req.body;
+        if(!userId || !address){
+          return res.status(400).json({ message: "All fields required" });
+        }
         const user = await UserModel.findById(userId);
         if (!user) return res.status(404).json({ message: "User not found" });
         if (address?.isDefault) {

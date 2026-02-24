@@ -93,6 +93,7 @@ export const getAllUsersByAdmin = async (req, res) => {
             .sort({ createdAt: -1 })
             .skip((pageNum - 1) * limitNum)
             .limit(limitNum)
+            .populate("wishlist")
             .lean();
 
         return res.status(200).json({
