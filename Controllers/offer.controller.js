@@ -3,9 +3,9 @@ import OfferModel from "../Models/OfferModel.js";
 
 export const createOffer = async (req, res) => {
   try {
-    const { title, subtitle, link, position } = req.body;
+    const { image, link, position } = req.body;
 
-    if (!title) {
+    if (!image) {
       return res.status(400).json({
         success: false,
         message: "Title is required",
@@ -13,8 +13,7 @@ export const createOffer = async (req, res) => {
     }
 
     const offer = await OfferModel.create({
-      title,
-      subtitle,
+      image,
       link,
       position,
     });

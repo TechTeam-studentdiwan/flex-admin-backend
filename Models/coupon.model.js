@@ -9,7 +9,7 @@ const CouponSchema = new mongoose.Schema({
   validFrom: { type: Date, required: true },
   validTo: { type: Date, required: true },
   usageLimit: { type: Number, default: 1000 },
-  usedCount: { type: Number, default: 0 },
+  useLimitperUser: { type: Number, default: 1 },
   eligibleCategories: [String],
   firstOrderOnly: { type: Boolean, default: false },
   isActive: { type: Boolean, default: true },

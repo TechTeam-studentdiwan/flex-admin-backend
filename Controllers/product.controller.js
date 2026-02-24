@@ -56,17 +56,18 @@ export const deleteProduct = async (req, res) => {
 
 export const getProducts = async (req, res) => {
     try {
-        const { 
-            category, 
-            search, 
-            minPrice, 
-            maxPrice, 
-            occasion, 
-            fabric, 
-            fitAdjustmentEnabled, 
-            sort = "popular", 
-            limit = 20, 
-            skip = 0 
+        const {
+            category,
+            search,
+            minPrice,
+            maxPrice,
+            occasion,
+            fabric,
+            fitAdjustmentEnabled,
+            codAvailable,
+            sort = "popular",
+            limit = 20,
+            skip = 0
         } = req.query;
 
         let query = { isActive: true };
@@ -86,6 +87,7 @@ export const getProducts = async (req, res) => {
         if (occasion) query.occasion = occasion;
         if (fabric) query.fabric = fabric;
 
+        if (codAvailable) query.codAvailable = codAvailable;
         // 4. Fit Adjustment Filter
         if (fitAdjustmentEnabled === 'true' || fitAdjustmentEnabled === true) {
             query.fitAdjustmentEnabled = true;
@@ -95,7 +97,7 @@ export const getProducts = async (req, res) => {
         if (minPrice || maxPrice) {
             const min = Number(minPrice || 0);
             const max = Number(maxPrice || 999999);
-            
+
             // This checks both discountPrice (if it exists) OR standard price
             query.$and = [
                 {

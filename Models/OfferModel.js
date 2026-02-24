@@ -2,14 +2,9 @@ import mongoose from "mongoose";
 
 const OfferSchema = new mongoose.Schema(
   {
-    title: {
+    image: {
       type: String,
       required: true,
-      trim: true,
-    },
-
-    subtitle: {
-      type: String,
       trim: true,
     },
 

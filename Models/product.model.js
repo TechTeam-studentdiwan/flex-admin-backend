@@ -7,6 +7,8 @@ const SizeChartSchema = new mongoose.Schema(
     waist_max: { type: Number, required: true },
     hips_max: { type: Number, required: true },
     shoulder_max: { type: Number, required: true },
+    sleeve_length: { type: Number },
+    dress_length: { type: Number },
   },
   { _id: false }
 );
@@ -38,6 +40,8 @@ const ProductSchema = new mongoose.Schema(
     whatsIncluded: { type: String, default: "2pc set" },
     careInstructions: { type: String, default: "Dry clean recommended" },
     isActive: { type: Boolean, default: true },
+    estimatedDeliveryDays: Number,
+    codAvailable: { type: Boolean, default: false }
   },
   { timestamps: true }
 );

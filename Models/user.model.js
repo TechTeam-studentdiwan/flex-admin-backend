@@ -2,15 +2,32 @@ import mongoose from "mongoose";
 
 const AddressSchema = new mongoose.Schema(
     {
-        label: { type: String, trim: true },
-        fullName: { type: String, trim: true },
-        phone: { type: String, trim: true },
-        addressLine1: { type: String, trim: true },
-        addressLine2: { type: String, trim: true },
-        city: { type: String, trim: true },
-        state: { type: String, trim: true },
-        postalCode: { type: String, trim: true },
+        label: { type: String, trim: true }, // e.g. "Home", "Office"
+
+        fullName: { type: String, trim: true, required: true },
+        phone: { type: String, trim: true, required: true },
+
+        addressType: {
+            type: String,
+            enum: ["villa", "apartment"],
+            required: true,
+        },
+
+        // Common Qatar address fields
+        buildingNo: { type: String, trim: true, required: true },
+        streetNo: { type: String, trim: true, required: true },
+        zoneNo: { type: String, trim: true, required: true },
+
+        // Villa specific
+        villaNo: { type: String, trim: true },
+
+        // Apartment specific
+        floorNo: { type: String, trim: true },
+        roomNo: { type: String, trim: true },
+
+        city: { type: String, default: "Doha" },
         country: { type: String, default: "Qatar" },
+
         isDefault: { type: Boolean, default: false },
     },
     { timestamps: true }
