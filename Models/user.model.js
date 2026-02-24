@@ -14,7 +14,7 @@ const AddressSchema = new mongoose.Schema(
         },
 
         // Common Qatar address fields
-        buildingNo: { type: String, trim: true, required: true },
+
         streetNo: { type: String, trim: true, required: true },
         zoneNo: { type: String, trim: true, required: true },
 
@@ -22,6 +22,7 @@ const AddressSchema = new mongoose.Schema(
         villaNo: { type: String, trim: true },
 
         // Apartment specific
+        buildingNo: { type: String, trim: true },
         floorNo: { type: String, trim: true },
         roomNo: { type: String, trim: true },
 
@@ -29,6 +30,11 @@ const AddressSchema = new mongoose.Schema(
         country: { type: String, default: "Qatar" },
 
         isDefault: { type: Boolean, default: false },
+        location: {
+            lat: { type: Number },
+            lng: { type: Number },
+        },
+
     },
     { timestamps: true }
 );
