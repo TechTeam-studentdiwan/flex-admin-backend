@@ -9,6 +9,7 @@ const CartItemSchema = new mongoose.Schema({
   size: String,
   quantity: { type: Number, default: 1 },
   fitAdjustment: Object,
+  paymentType: String
 });
 
 const CartSchema = new mongoose.Schema({
