@@ -2,16 +2,35 @@ import mongoose from "mongoose";
 
 // Snapshot of shipping address at order time
 const ShippingAddressSchema = new mongoose.Schema(
+
     {
-        label: { type: String, trim: true },
+        label: { type: String, trim: true }, // e.g. "Home", "Office"
         fullName: { type: String, trim: true, required: true },
         phone: { type: String, trim: true, required: true },
-        addressLine1: { type: String, trim: true, required: true },
-        addressLine2: { type: String, trim: true },
-        city: { type: String, trim: true, required: true },
-        state: { type: String, trim: true },
-        postalCode: { type: String, trim: true, required: true },
+        addressType: {
+            type: String,
+            enum: ["villa", "apartment"],
+            required: true,
+        },
+
+
+        streetNo: { type: String, trim: true, required: true },
+        zoneNo: { type: String, trim: true, required: true },
+
+        // Villa specific
+        villaNo: { type: String, trim: true },
+
+        // Apartment specific
+        buildingNo: { type: String, trim: true },
+        floorNo: { type: String, trim: true },
+        roomNo: { type: String, trim: true },
+
+        city: { type: String, default: "Doha" },
         country: { type: String, default: "Qatar" },
+        location: {
+            lat: { type: Number },
+            lng: { type: Number },
+        },
     },
     { _id: false }
 );
