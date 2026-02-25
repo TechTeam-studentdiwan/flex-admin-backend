@@ -16,7 +16,7 @@ function calculateEstimatedDelivery(cartItems) {
 
 export const previewOrder = async (req, res) => {
     try {
-        const { userId, shippingAddressId, couponCode } = req.body || {};
+        const { userId, couponCode } = req.body || {};
         const cart = await CartModel.findOne({ userId });
         if (!cart || !cart.items.length) {
             return res.status(400).json({ message: "Cart is empty" });
@@ -24,9 +24,8 @@ export const previewOrder = async (req, res) => {
 
         let subtotal = 0;
         let fitFee = 0;
-
-        let payNowSubtotal = 0; // online items
-        let codSubtotal = 0;    // COD items
+        let payNowSubtotal = 0;
+        let codSubtotal = 0;
 
         for (const item of cart.items) {
             const product = await ProductModel.findById(item.productId);
@@ -46,6 +45,10 @@ export const previewOrder = async (req, res) => {
                 codSubtotal += itemTotal;
             }
         }
+
+        const hasOnline = payNowSubtotal > 0;
+        const hasCod = codSubtotal > 0;
+
 
         // Delivery fee
         let deliveryFee = 0;
@@ -77,9 +80,25 @@ export const previewOrder = async (req, res) => {
 
         const grandTotal = subtotal - discount + fitFee + deliveryFee;
 
-        // Split discount proportionally (simple approach: apply to payNow first)
-        let payNowAmount = Math.max(0, payNowSubtotal - discount) + fitFee + deliveryFee;
-        let codAmount = codSubtotal;
+        let payNowAmount = 0;
+        let codAmount = 0;
+
+        if (hasCod && !hasOnline) {
+            // ✅ All COD
+            codAmount = Math.max(0, codSubtotal - discount) + fitFee + deliveryFee;
+            payNowAmount = 0;
+        }
+        else if (hasOnline && !hasCod) {
+            // ✅ All Online
+            payNowAmount = Math.max(0, payNowSubtotal - discount) + fitFee + deliveryFee;
+            codAmount = 0;
+        }
+        else {
+            // ✅ Mixed: keep charges on ONLINE
+            payNowAmount = Math.max(0, payNowSubtotal - discount) + fitFee + deliveryFee;
+            codAmount = codSubtotal;
+        }
+
 
         const estimatedDeliveryDate = calculateEstimatedDelivery(cart.items);
 
@@ -105,137 +124,153 @@ export const previewOrder = async (req, res) => {
 
 
 export const createOrder = async (req, res) => {
-  try {
-    const { userId, shippingAddressId, couponCode } = req.body || {};
+    try {
+        const { userId, shippingAddressId, couponCode } = req.body || {};
 
-    const cart = await CartModel.findOne({ userId });
-    if (!cart || !cart.items.length) {
-      return res.status(400).json({ message: "Cart is empty" });
-    }
-
-    const user = await UserModel.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    const address = user.addresses.find(a => a._id.toString() === shippingAddressId);
-    if (!address) {
-      return res.status(404).json({ message: "Address not found" });
-    }
-
-    let subtotal = 0;
-    let fitFee = 0;
-    let payNowSubtotal = 0;
-    let codSubtotal = 0;
-
-    const orderItems = [];
-
-    for (const item of cart.items) {
-      const product = await ProductModel.findById(item.productId);
-      if (!product) continue;
-
-      const price = product.discountPrice || product.price;
-      const itemTotal = price * item.quantity;
-
-      subtotal += itemTotal;
-
-      if (item.fitAdjustment) {
-        fitFee += (item.fitAdjustment.fee || 0) * item.quantity;
-      }
-
-      if (item.paymentType === "online") {
-        payNowSubtotal += itemTotal;
-      } else {
-        codSubtotal += itemTotal;
-      }
-
-      // snapshot item into order
-      orderItems.push({
-        name: product.name,
-        image: product.images?.[0] || "",
-        size: item.size,
-        quantity: item.quantity,
-        price: price,
-        discountPrice: product.discountPrice || 0,
-        fitAdjustment: item.fitAdjustment || null,
-        fitAdjustmentFee: item.fitAdjustment?.fee || 0,
-      });
-    }
-
-    // Delivery fee
-    let deliveryFee = 0;
-    const adminUser = await UserModel.findOne({ isAdmin: true });
-
-    if (adminUser && typeof adminUser.deliveryfee === "number") {
-      deliveryFee = adminUser.deliveryfee;
-    } else {
-      deliveryFee = subtotal < 200 ? 15 : 0; // keep your rule
-    }
-
-    // Coupon
-    let discount = 0;
-    if (couponCode) {
-      const now = new Date();
-      const coupon = await CouponModel.findOne({ code: couponCode, isActive: true });
-
-      if (coupon && coupon.validFrom <= now && now <= coupon.validTo) {
-        if (coupon.type === "percentage") {
-          discount = (subtotal * coupon.value) / 100;
-          if (coupon.maxDiscount) discount = Math.min(discount, coupon.maxDiscount);
-        } else if (coupon.type === "flat") {
-          discount = coupon.value;
-        } else if (coupon.type === "freedelivery") {
-          discount = deliveryFee;
+        const cart = await CartModel.findOne({ userId });
+        if (!cart || !cart.items.length) {
+            return res.status(400).json({ message: "Cart is empty" });
         }
-      }
+
+        const user = await UserModel.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        const address = user.addresses.find(a => a._id.toString() === shippingAddressId);
+        if (!address) {
+            return res.status(404).json({ message: "Address not found" });
+        }
+
+        let subtotal = 0;
+        let fitFee = 0;
+        let payNowSubtotal = 0;
+        let codSubtotal = 0;
+
+        const orderItems = [];
+
+        for (const item of cart.items) {
+            const product = await ProductModel.findById(item.productId);
+            if (!product) continue;
+
+            const price = product.discountPrice || product.price;
+            const itemTotal = price * item.quantity;
+
+            subtotal += itemTotal;
+
+            if (item.fitAdjustment) {
+                fitFee += (item.fitAdjustment.fee || 0) * item.quantity;
+            }
+
+            if (item.paymentType === "online") {
+                payNowSubtotal += itemTotal;
+            } else {
+                codSubtotal += itemTotal;
+            }
+
+            // snapshot item into order
+            orderItems.push({
+                name: product.name,
+                image: product.images?.[0] || "",
+                size: item.size,
+                quantity: item.quantity,
+                price: price,
+                discountPrice: product.discountPrice || 0,
+                fitAdjustment: item.fitAdjustment || null,
+                fitAdjustmentFee: item.fitAdjustment?.fee || 0,
+            });
+        }
+        const hasOnline = payNowSubtotal > 0;
+        const hasCod = codSubtotal > 0;
+        // Delivery fee
+        let deliveryFee = 0;
+        const adminUser = await UserModel.findOne({ isAdmin: true });
+
+        if (adminUser && typeof adminUser.deliveryfee === "number") {
+            deliveryFee = adminUser.deliveryfee;
+        } else {
+            deliveryFee = subtotal < 200 ? 15 : 0; // keep your rule
+        }
+
+        // Coupon
+        let discount = 0;
+        if (couponCode) {
+            const now = new Date();
+            const coupon = await CouponModel.findOne({ code: couponCode, isActive: true });
+
+            if (coupon && coupon.validFrom <= now && now <= coupon.validTo) {
+                if (coupon.type === "percentage") {
+                    discount = (subtotal * coupon.value) / 100;
+                    if (coupon.maxDiscount) discount = Math.min(discount, coupon.maxDiscount);
+                } else if (coupon.type === "flat") {
+                    discount = coupon.value;
+                } else if (coupon.type === "freedelivery") {
+                    discount = deliveryFee;
+                }
+            }
+        }
+
+        const grandTotal = subtotal - discount + fitFee + deliveryFee;
+
+        let payNowAmount = 0;
+        let codAmount = 0;
+
+        if (hasCod && !hasOnline) {
+            // ✅ All COD
+            codAmount = Math.max(0, codSubtotal - discount) + fitFee + deliveryFee;
+            payNowAmount = 0;
+        }
+        else if (hasOnline && !hasCod) {
+            // ✅ All Online
+            payNowAmount = Math.max(0, payNowSubtotal - discount) + fitFee + deliveryFee;
+            codAmount = 0;
+        }
+        else {
+            // ✅ Mixed: keep charges on ONLINE
+            payNowAmount = Math.max(0, payNowSubtotal - discount) + fitFee + deliveryFee;
+            codAmount = codSubtotal;
+        }
+
+        const estimatedDelivery = calculateEstimatedDelivery(cart.items);
+
+        const tord = await OrderModel.countDocuments();
+
+        const order = await OrderModel.create({
+            userId,
+            items: orderItems,
+            shippingAddress: address,
+            subtotal,
+            discount,
+            fitAdjustmentFee: fitFee,
+            deliveryFee,
+            total: grandTotal,
+            orderNumber: 1000 + tord + 1,
+            couponCode: couponCode || null,
+            orderStatus: "pending",
+            estimatedDelivery,
+        });
+
+        await CartModel.deleteOne({ userId });
+
+        return res.status(200).json({
+            success: true,
+            order,
+            summary: {
+                subtotal,
+                discount,
+                fitAdjustmentFee: fitFee,
+                deliveryFee,
+                payNowAmount,
+                codAmount,
+                grandTotal,
+                estimatedDeliveryDate: estimatedDelivery,
+            },
+        });
+
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: "Server error" });
     }
-
-    const grandTotal = subtotal - discount + fitFee + deliveryFee;
-
-    // Split amounts
-    const payNowAmount = Math.max(0, payNowSubtotal - discount) + fitFee + deliveryFee;
-    const codAmount = codSubtotal;
-
-    const estimatedDelivery = calculateEstimatedDelivery(cart.items);
-
-    const tord = await OrderModel.countDocuments();
-
-    const order = await OrderModel.create({
-      userId,
-      items: orderItems,
-      shippingAddress: address,
-      subtotal,
-      discount,
-      fitAdjustmentFee: fitFee,
-      deliveryFee,
-      total: grandTotal,
-      orderNumber: 1000 + tord + 1,
-      couponCode: couponCode || null,
-      orderStatus: "pending",
-      estimatedDelivery,
-    });
-
-    await CartModel.deleteOne({ userId });
-
-    return res.status(200).json({
-      success: true,
-      order,
-      summary: {
-        subtotal,
-        discount,
-        fitAdjustmentFee: fitFee,
-        deliveryFee,
-        payNowAmount,
-        codAmount,
-        grandTotal,
-        estimatedDeliveryDate: estimatedDelivery,
-      },
-    });
-
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: "Server error" });
-  }
 };
 
 

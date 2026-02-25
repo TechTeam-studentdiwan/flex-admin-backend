@@ -53,7 +53,7 @@ export const getCart = async (req, res) => {
 export const addCart = async (req, res) => {
 
     try {
-        const { userId, productId, size, quantity, fitAdjustment } = req.body;
+        const { userId, productId, size, quantity, fitAdjustment,paymentType } = req.body;
         if (!userId) {
             res.status(400).json({ success: false, message: "UserId Required" });
         }
@@ -62,12 +62,12 @@ export const addCart = async (req, res) => {
         if (!cart) {
             await CartModel.create({
                 userId,
-                items: [{ productId, size, quantity, fitAdjustment }],
+                items: [{ productId, size, quantity, fitAdjustment ,paymentType}],
             });
         } else {
             const existing = cart.items.find(i => i.productId === productId && i.size === size);
             if (existing) existing.quantity += quantity;
-            else cart.items.push({ productId, size, quantity, fitAdjustment });
+            else cart.items.push({ productId, size, quantity, fitAdjustment,paymentType });
 
             cart.updatedAt = new Date();
             await cart.save();
@@ -82,7 +82,7 @@ export const addCart = async (req, res) => {
 
 export const updateCart = async (req, res) => {
     try {
-        const { userId, itemId, size, quantity } = req.body || {};
+        const { userId, itemId,  quantity, } = req.body || {};
 
         const cart = await CartModel.findOne({ userId });
         if (!cart) {
