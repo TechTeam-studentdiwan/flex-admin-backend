@@ -4,7 +4,7 @@ import UserModel from "../Models/user.model.js";
 import ProductModel from "../Models/product.model.js";
 import OrderModel from "../Models/order.model.js";
 import CouponModel from "../Models/coupon.model.js";
-
+import axios from 'axios'
 function calculateEstimatedDelivery(cartItems) {
     let extraDays = cartItems?.estimatedDeliveryDays || 3;
     const hasFitAdjustment = cartItems.some(i => i.fitAdjustment);
@@ -148,10 +148,13 @@ export const createOrder = async (req, res) => {
         let codSubtotal = 0;
 
         const orderItems = [];
-
+        let paymentType = "cash on delivery";
         for (const item of cart.items) {
             const product = await ProductModel.findById(item.productId);
             if (!product) continue;
+            if(!product.codAvailable){
+               paymentType = "online";
+            }
 
             const price = product.discountPrice || product.price;
             const itemTotal = price * item.quantity;
@@ -160,12 +163,6 @@ export const createOrder = async (req, res) => {
 
             if (item.fitAdjustment) {
                 fitFee += (item.fitAdjustment.fee || 0) * item.quantity;
-            }
-
-            if (item.paymentType === "online") {
-                payNowSubtotal += itemTotal;
-            } else {
-                codSubtotal += itemTotal;
             }
 
             // snapshot item into order
@@ -180,8 +177,6 @@ export const createOrder = async (req, res) => {
                 fitAdjustmentFee: item.fitAdjustment?.fee || 0,
             });
         }
-        const hasOnline = payNowSubtotal > 0;
-        const hasCod = codSubtotal > 0;
         // Delivery fee
         let deliveryFee = 0;
         const adminUser = await UserModel.findOne({ isAdmin: true });
@@ -212,24 +207,6 @@ export const createOrder = async (req, res) => {
 
         const grandTotal = subtotal - discount + fitFee + deliveryFee;
 
-        let payNowAmount = 0;
-        let codAmount = 0;
-
-        if (hasCod && !hasOnline) {
-            // ✅ All COD
-            codAmount = Math.max(0, codSubtotal - discount) + fitFee + deliveryFee;
-            payNowAmount = 0;
-        }
-        else if (hasOnline && !hasCod) {
-            // ✅ All Online
-            payNowAmount = Math.max(0, payNowSubtotal - discount) + fitFee + deliveryFee;
-            codAmount = 0;
-        }
-        else {
-            // ✅ Mixed: keep charges on ONLINE
-            payNowAmount = Math.max(0, payNowSubtotal - discount) + fitFee + deliveryFee;
-            codAmount = codSubtotal;
-        }
 
         const estimatedDelivery = calculateEstimatedDelivery(cart.items);
 
@@ -246,8 +223,9 @@ export const createOrder = async (req, res) => {
             total: grandTotal,
             orderNumber: 1000 + tord + 1,
             couponCode: couponCode || null,
-            orderStatus: "pending",
+            orderStatus:paymentType== "online"? "pending":"processing",
             estimatedDelivery,
+            paymentType
         });
 
         await CartModel.deleteOne({ userId });
@@ -260,8 +238,6 @@ export const createOrder = async (req, res) => {
                 discount,
                 fitAdjustmentFee: fitFee,
                 deliveryFee,
-                payNowAmount,
-                codAmount,
                 grandTotal,
                 estimatedDeliveryDate: estimatedDelivery,
             },
@@ -327,6 +303,26 @@ export const updateOrderByAdmin = async (req, res) => {
     }
 };
 
+export const createPaymentURL = async (req, res) => {
+  try {
+    const { orderId } = req.body;
+    const order = await OrderModel.findById(orderId);
+    const user = await UserModel.findById(order.userId)
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // Return the transaction URL to the frontend
+    res.status(200).json({
+      url: response.data.transaction.url,
+      chargeId: response.data.id
+    });
+
+  } catch (error) {
+    console.error('Tap Payment Error:', error.response?.data || error.message);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
 
 export const getOrdersbyuserId = async (req, res) => {
 

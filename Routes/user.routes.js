@@ -18,7 +18,7 @@ userRouter.post("/validate-measurements/:userId", authentication, validateMeasur
 userRouter.delete("/measurements/:userId/:profileId", authentication, removeUserMeasurement);
 
 // USER DETAILS ROUTES
-userRouter.put("/update-profile/:userId", authentication, adminOnly, updateUserProfile);
+userRouter.put("/update-profile/:userId", authentication, updateUserProfile);
 userRouter.get("/get-users", authentication, adminOnly, getAllUsersByAdmin);
 userRouter.get("/get-dashboard-overview", authentication, adminOnly, getAdminDashboardOverview);
 
