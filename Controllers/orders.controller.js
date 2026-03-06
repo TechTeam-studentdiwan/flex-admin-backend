@@ -312,43 +312,6 @@ export const createPaymentURL = async (req, res) => {
       return res.status(404).json({ message: 'Order not found' });
     }
 
-    // Prepare Tap Payments Charge Request
-    const chargeData = {
-      amount: order.subtotal,
-      currency: "QAR", // Based on your frontend currency
-      threeDSecure: true,
-      save_card: false,
-      description: `Payment for Order #${order.orderNumber}`,
-      statement_descriptor: "Sahiba",
-      metadata: {
-        orderId: order._id.toString()
-      },
-      customer: {
-        first_name: order.shippingAddress.fullName.split(' ')[0],
-        last_name: order.shippingAddress.fullName.split(' ')[1] || '',
-        email: user.email,
-        phone: {
-          country_code: "974",
-          number: order.shippingAddress.phone
-        }
-      },
-      source: { id: "src_all" }, // Allows all card types
-      redirect: {
-        url: `/payment-verify?orderId=${orderId}`
-      },
-      post: {
-        // This is the webhook Tap calls to update your DB
-        url: "https://your-api.com/api/payments/webhook"
-      }
-    };
-
-    const response = await axios.post('https://api.tap.company/v2/charges', chargeData, {
-      headers: {
-        Authorization: `Bearer sk_test_FkwfpcjOIU40xEVMdqnz96PB`,
-        'Content-Type': 'application/json'
-      }
-    });
-
     // Return the transaction URL to the frontend
     res.status(200).json({
       url: response.data.transaction.url,
