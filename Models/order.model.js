@@ -73,6 +73,11 @@ const OrderSchema = new mongoose.Schema(
             enum: ["pending", "paid", "failed", "refunded"],
             default: "pending",
         },
+        paymentType: {
+            type: String,
+            enum: ["online", "cash on delivery"],
+            default: "online",
+        },
         paymentReferenceId: {
             type: String,
 
