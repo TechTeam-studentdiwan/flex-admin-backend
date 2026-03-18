@@ -23,7 +23,7 @@ userRouter.get("/get-users", authentication, adminOnly, getAllUsersByAdmin);
 userRouter.get("/get-dashboard-overview", authentication, adminOnly, getAdminDashboardOverview);
 
 
-userRouter.get("/terms", authentication, getTerms)
+userRouter.get("/terms",  getTerms)
 
 
 export default userRouter;
