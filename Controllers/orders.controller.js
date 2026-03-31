@@ -123,6 +123,75 @@ export const previewOrder = async (req, res) => {
 
 
 
+export const paymentVerify = async (req, res) => {
+  try {
+    const { chargeId, orderId } = req.body;
+
+    if (!chargeId || !orderId) {
+      return res.status(400).json({
+        success: false,
+        message: "chargeId and orderId are required",
+      });
+    }
+
+    // Tap secret key
+    const TAP_SECRET_KEY = process.env.TAP_SECRET_KEY;
+
+    // 1️⃣ Retrieve charge from Tap
+    const tapResponse = await axios.get(
+      `https://api.tap.company/v2/charges/${chargeId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${TAP_SECRET_KEY}`,
+        },
+      }
+    );
+
+    const chargeData = tapResponse.data;
+
+    console.log("Tap Charge Response:", chargeData);
+
+    // 2️⃣ Check payment status
+    if (chargeData.status !== "CAPTURED") {
+      return res.status(400).json({
+        success: false,
+        message: "Payment not captured",
+        status: chargeData.status,
+      });
+    }
+
+    // 3️⃣ Update order
+    const order = await OrderModel.findById(orderId);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    order.paymentStatus = "paid";
+    order.paymentReferenceId = chargeId;
+    order.orderStatus = "confirmed";
+
+    await order.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Payment verified successfully",
+      order,
+    });
+  } catch (error) {
+    console.error("Payment verification error:", error.response?.data || error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Payment verification failed",
+    });
+  }
+};
+
+
 export const createOrder = async (req, res) => {
     try {
         const { userId, shippingAddressId, couponCode } = req.body || {};
