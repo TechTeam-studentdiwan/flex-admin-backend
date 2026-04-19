@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const AddressSchema = new mongoose.Schema(
     {
-        label: { type: String, trim: true }, // e.g. "Home", "Office"
+        label: { type: String, trim: true },
 
         fullName: { type: String, trim: true, required: true },
         phone: { type: String, trim: true, required: true },
@@ -13,8 +13,10 @@ const AddressSchema = new mongoose.Schema(
             required: true,
         },
 
-        // Common Qatar address fields
+        areaId: { type: mongoose.Schema.Types.ObjectId, ref: "Area" },
+        areaName: { type: String, trim: true },
 
+        // Common Qatar address fields
         streetNo: { type: String, trim: true, required: true },
         zoneNo: { type: String, trim: true, required: true },
 

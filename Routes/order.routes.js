@@ -1,11 +1,13 @@
 import { Router } from "express";
-import { createOrder, getOrdersbyuserId, getOrderDetail, getAllOrders, updateOrderByAdmin, previewOrder, createPaymentURL, paymentVerify } from "../Controllers/orders.controller.js";
+import { createOrder, buyNowOrder, previewBuyNow, getOrdersbyuserId, getOrderDetail, getAllOrders, updateOrderByAdmin, previewOrder, createPaymentURL, paymentVerify } from "../Controllers/orders.controller.js";
 import { authentication } from "../Middlewares/authentication.js";
 import { adminOnly } from "../Middlewares/admin.js";
 
 const orderRouter = Router();
 
 orderRouter.post("/create", authentication, createOrder);
+orderRouter.post("/buy-now", authentication, buyNowOrder);
+orderRouter.post("/preview-buy-now", authentication, previewBuyNow);
 orderRouter.post("/update/:orderId", authentication, adminOnly, updateOrderByAdmin);
 orderRouter.post("/payment/link", authentication, createPaymentURL);
 orderRouter.get("/getordersbyuser/:userId", authentication, getOrdersbyuserId);
