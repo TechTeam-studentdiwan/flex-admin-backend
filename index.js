@@ -16,12 +16,18 @@ import offerRoutes from "./Routes/offer.routes.js";
 import areaRouter from "./Routes/area.routes.js";
 import termsPageRouter from "./Routes/termsPage.routes.js";
 
-
 dotenv.config();
 
 const app = express();
+
 app.use(
-  cors()
+  cors({
+    origin: (origin, callback) => {
+      // Allow Vercel admin dashboard and all other origins (mobile app, Expo, etc.)
+      callback(null, origin || "*");
+    },
+    credentials: true,
+  })
 );
 
 app.use(express.json());
@@ -40,13 +46,13 @@ app.use("/areas", areaRouter);
 app.use("/terms-pages", termsPageRouter);
 
 const PORT = process.env.PORT || 8000;
-app.listen(PORT,'0.0.0.0', async () => {
-    try {
-        await connectDB;
-        console.log(
-            `App listening successfully on port : ${PORT} => http://localhost:${PORT}`
-        );
-    } catch (error) {
-        console.error(error);
-    }
+app.listen(PORT, "0.0.0.0", async () => {
+  try {
+    await connectDB;
+    console.log(
+      `App listening successfully on port : ${PORT} => http://localhost:${PORT}`
+    );
+  } catch (error) {
+    console.error(error);
+  }
 });
