@@ -7,7 +7,7 @@ export const getAllAreas = async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, message: "Server error" });
   }
-};
+}; 
 
 export const createArea = async (req, res) => {
   try {
