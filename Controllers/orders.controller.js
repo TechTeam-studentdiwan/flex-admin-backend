@@ -4,7 +4,20 @@ import UserModel from "../Models/user.model.js";
 import ProductModel from "../Models/product.model.js";
 import OrderModel from "../Models/order.model.js";
 import CouponModel from "../Models/coupon.model.js";
+import AreaModel from "../Models/area.model.js";
 import axios from 'axios'
+
+async function resolveDeliveryFee(address) {
+    if (address?.areaId) {
+        const area = await AreaModel.findById(address.areaId);
+        if (area) return area.deliveryFee;
+    }
+    const adminUser = await UserModel.findOne({ isAdmin: true });
+    if (adminUser && typeof adminUser.deliveryfee === "number") {
+        return adminUser.deliveryfee;
+    }
+    return 0;
+}
 function calculateEstimatedDelivery(cartItems) {
     let extraDays = cartItems?.estimatedDeliveryDays || 3;
     const hasFitAdjustment = cartItems.some(i => i.fitAdjustment);
@@ -16,7 +29,7 @@ function calculateEstimatedDelivery(cartItems) {
 
 export const previewOrder = async (req, res) => {
     try {
-        const { userId, couponCode } = req.body || {};
+        const { userId, couponCode, shippingAddressId } = req.body || {};
         const cart = await CartModel.findOne({ userId });
         if (!cart || !cart.items.length) {
             return res.status(400).json({ message: "Cart is empty" });
@@ -49,16 +62,13 @@ export const previewOrder = async (req, res) => {
         const hasOnline = payNowSubtotal > 0;
         const hasCod = codSubtotal > 0;
 
-
-        // Delivery fee
-        let deliveryFee = 0;
-        const adminUser = await UserModel.findOne({ isAdmin: true });
-
-        if (adminUser && typeof adminUser.deliveryfee === "number") {
-            deliveryFee = adminUser.deliveryfee;
-        } else {
-            deliveryFee = 0;
+        // Delivery fee — area-based or global fallback
+        let address = null;
+        if (shippingAddressId) {
+            const user = await UserModel.findById(userId);
+            address = user?.addresses.find(a => a._id.toString() === shippingAddressId);
         }
+        const deliveryFee = await resolveDeliveryFee(address);
 
         // Coupon
         let discount = 0;
@@ -246,15 +256,8 @@ export const createOrder = async (req, res) => {
                 fitAdjustmentFee: item.fitAdjustment?.fee || 0,
             });
         }
-        // Delivery fee
-        let deliveryFee = 0;
-        const adminUser = await UserModel.findOne({ isAdmin: true });
-
-        if (adminUser && typeof adminUser.deliveryfee === "number") {
-            deliveryFee = adminUser.deliveryfee;
-        } else {
-            deliveryFee = subtotal < 200 ? 15 : 0; // keep your rule
-        }
+        // Delivery fee — area-based or global fallback
+        const deliveryFee = await resolveDeliveryFee(address);
 
         // Coupon
         let discount = 0;
@@ -319,6 +322,154 @@ export const createOrder = async (req, res) => {
 };
 
 
+
+export const previewBuyNow = async (req, res) => {
+    try {
+        const { userId, productId, size, quantity = 1, paymentType = "online", fitAdjustment, shippingAddressId, couponCode } = req.body || {};
+
+        const product = await ProductModel.findById(productId);
+        if (!product) return res.status(404).json({ message: "Product not found" });
+
+        const price = product.discountPrice || product.price;
+        const subtotal = price * quantity;
+        const fitFee = fitAdjustment?.fee ? fitAdjustment.fee * quantity : 0;
+
+        let address = null;
+        if (shippingAddressId) {
+            const user = await UserModel.findById(userId);
+            address = user?.addresses.find(a => a._id.toString() === shippingAddressId);
+        }
+        const deliveryFee = await resolveDeliveryFee(address);
+
+        let discount = 0;
+        if (couponCode) {
+            const now = new Date();
+            const coupon = await CouponModel.findOne({ code: couponCode, isActive: true });
+            if (coupon && coupon.validFrom <= now && now <= coupon.validTo) {
+                if (coupon.type === "percentage") {
+                    discount = (subtotal * coupon.value) / 100;
+                    if (coupon.maxDiscount) discount = Math.min(discount, coupon.maxDiscount);
+                } else if (coupon.type === "flat") {
+                    discount = coupon.value;
+                } else if (coupon.type === "freedelivery") {
+                    discount = deliveryFee;
+                }
+            }
+        }
+
+        const grandTotal = subtotal - discount + fitFee + deliveryFee;
+        const hasFitAdjustment = !!fitAdjustment;
+        let extraDays = product.estimatedDeliveryDays || 3;
+        if (hasFitAdjustment) extraDays += 3;
+        const estimatedDeliveryDate = new Date(Date.now() + extraDays * 24 * 60 * 60 * 1000);
+
+        const isCod = paymentType === "cod";
+        return res.status(200).json({
+            success: true,
+            summary: {
+                subtotal,
+                discount,
+                fitAdjustmentFee: fitFee,
+                deliveryFee,
+                payNowAmount: isCod ? 0 : grandTotal,
+                codAmount: isCod ? grandTotal : 0,
+                grandTotal,
+                estimatedDeliveryDate,
+            },
+        });
+    } catch (err) {
+        console.error("previewBuyNow error:", err);
+        return res.status(500).json({ message: "Server error" });
+    }
+};
+
+export const buyNowOrder = async (req, res) => {
+    try {
+        const { userId, productId, size, quantity = 1, paymentType = "online", fitAdjustment, shippingAddressId, couponCode } = req.body || {};
+
+        const product = await ProductModel.findById(productId);
+        if (!product) return res.status(404).json({ message: "Product not found" });
+
+        const user = await UserModel.findById(userId);
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        const address = user.addresses.find(a => a._id.toString() === shippingAddressId);
+        if (!address) return res.status(404).json({ message: "Address not found" });
+
+        const price = product.discountPrice || product.price;
+        const subtotal = price * quantity;
+        const fitFee = fitAdjustment?.fee ? fitAdjustment.fee * quantity : 0;
+        const deliveryFee = await resolveDeliveryFee(address);
+
+        let discount = 0;
+        if (couponCode) {
+            const now = new Date();
+            const coupon = await CouponModel.findOne({ code: couponCode, isActive: true });
+            if (coupon && coupon.validFrom <= now && now <= coupon.validTo) {
+                if (coupon.type === "percentage") {
+                    discount = (subtotal * coupon.value) / 100;
+                    if (coupon.maxDiscount) discount = Math.min(discount, coupon.maxDiscount);
+                } else if (coupon.type === "flat") {
+                    discount = coupon.value;
+                } else if (coupon.type === "freedelivery") {
+                    discount = deliveryFee;
+                }
+            }
+        }
+
+        const grandTotal = subtotal - discount + fitFee + deliveryFee;
+
+        let extraDays = product.estimatedDeliveryDays || 3;
+        if (fitAdjustment) extraDays += 3;
+        const estimatedDelivery = new Date(Date.now() + extraDays * 24 * 60 * 60 * 1000);
+
+        const finalPaymentType = paymentType === "cod" && product.codAvailable ? "cash on delivery" : "online";
+
+        const orderItem = {
+            name: product.name,
+            image: product.images?.[0] || "",
+            size,
+            quantity,
+            price,
+            discountPrice: product.discountPrice || 0,
+            fitAdjustment: fitAdjustment || null,
+            fitAdjustmentFee: fitAdjustment?.fee || 0,
+        };
+
+        const tord = await OrderModel.countDocuments();
+        const order = await OrderModel.create({
+            userId,
+            items: [orderItem],
+            shippingAddress: address,
+            subtotal,
+            discount,
+            fitAdjustmentFee: fitFee,
+            deliveryFee,
+            total: grandTotal,
+            orderNumber: 1000 + tord + 1,
+            couponCode: couponCode || null,
+            orderStatus: finalPaymentType === "online" ? "pending" : "processing",
+            estimatedDelivery,
+            paymentType: finalPaymentType,
+        });
+
+        return res.status(200).json({
+            success: true,
+            order,
+            summary: {
+                subtotal,
+                discount,
+                fitAdjustmentFee: fitFee,
+                deliveryFee,
+                grandTotal,
+                estimatedDeliveryDate: estimatedDelivery,
+            },
+        });
+    } catch (err) {
+        console.error("buyNowOrder error:", err);
+        return res.status(500).json({ message: "Server error" });
+    }
+};
 
 export const updateOrderByAdmin = async (req, res) => {
     try {
