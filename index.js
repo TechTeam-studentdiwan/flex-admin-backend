@@ -14,6 +14,7 @@ import wishlistRouter from "./Routes/wishlist.routes.js";
 import categoryRouter from "./Routes/category.routes.js";
 import offerRoutes from "./Routes/offer.routes.js";
 import areaRouter from "./Routes/area.routes.js";
+import termsPageRouter from "./Routes/termsPage.routes.js";
 
 
 dotenv.config();
@@ -36,6 +37,7 @@ app.use("/wishlist", wishlistRouter);
 app.use("/categories", categoryRouter);
 app.use("/offers", offerRoutes);
 app.use("/areas", areaRouter);
+app.use("/terms-pages", termsPageRouter);
 
 const PORT = process.env.PORT || 8000;
 app.listen(PORT,'0.0.0.0', async () => {
