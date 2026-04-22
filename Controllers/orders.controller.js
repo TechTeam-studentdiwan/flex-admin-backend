@@ -661,3 +661,137 @@ export const getAllOrders = async (req, res) => {
     }
 };
 
+export const publicTrackOrder = async (req, res) => {
+    try {
+        const { orderNumber } = req.params;
+        const order = await OrderModel.findOne({ orderNumber }).lean();
+        if (!order) {
+            return res.status(404).send(`<!DOCTYPE html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Order Not Found</title><style>body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f9fafb}.box{text-align:center;padding:32px}h1{color:#471755}p{color:#666}</style></head><body><div class="box"><h1>Order Not Found</h1><p>No order found with number <b>#${orderNumber}</b>.</p></div></body></html>`);
+        }
+
+        const addr = order.shippingAddress || {};
+        const addressParts = [
+            addr.addressType === "villa" ? `Villa ${addr.villaNo}` : `Building ${addr.buildingNo}, Floor ${addr.floorNo}, Room ${addr.roomNo}`,
+            `Street ${addr.streetNo}`,
+            `Zone ${addr.zoneNo}`,
+            addr.city,
+            addr.country,
+        ].filter(Boolean);
+
+        const statusColors = {
+            pending: "#F59E0B",
+            confirmed: "#10B981",
+            processing: "#3B82F6",
+            fit_adjustment_in_progress: "#8B5CF6",
+            shipped: "#0EA5E9",
+            delivered: "#059669",
+            cancelled: "#EF4444",
+        };
+        const statusColor = statusColors[order.orderStatus] || "#6B7280";
+
+        const statusLabel = (order.orderStatus || "").replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+
+        const itemsHTML = (order.items || []).map(item => `
+            <tr>
+                <td style="padding:10px 12px;border-bottom:1px solid #f3f4f6;">
+                    <div style="font-weight:600;color:#111;">${item.name}</div>
+                    <div style="font-size:12px;color:#6b7280;margin-top:2px;">Size: ${item.size} &nbsp;|&nbsp; Qty: ${item.quantity}</div>
+                    ${item.fitAdjustment ? `<div style="font-size:11px;color:#8b5cf6;margin-top:3px;">✂ Includes Fit Adjustment</div>` : ""}
+                </td>
+                <td style="padding:10px 12px;border-bottom:1px solid #f3f4f6;text-align:right;font-weight:600;color:#471755;">
+                    QAR ${(item.discountPrice || item.price).toFixed(2)}
+                </td>
+            </tr>`).join("");
+
+        const estimatedStr = order.estimatedDelivery
+            ? new Date(order.estimatedDelivery).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+            : "—";
+
+        const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Order #${order.orderNumber} — Sahiba Wears</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f3f4f6;color:#111;padding:16px}
+    .card{background:#fff;border-radius:16px;max-width:520px;margin:0 auto;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.08)}
+    .header{background:linear-gradient(135deg,#471755,#7c3aed);padding:28px 24px;color:#fff;text-align:center}
+    .store-name{font-size:24px;font-weight:800;letter-spacing:.5px}
+    .store-tag{font-size:12px;opacity:.75;margin-top:4px}
+    .order-num{font-size:32px;font-weight:800;margin-top:12px;letter-spacing:1px}
+    .status-badge{display:inline-block;padding:6px 18px;border-radius:20px;font-weight:700;font-size:14px;margin-top:12px}
+    .section{padding:20px 24px;border-bottom:1px solid #f3f4f6}
+    .section:last-child{border-bottom:none}
+    .section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#9ca3af;margin-bottom:12px}
+    .info-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;font-size:14px}
+    .info-label{color:#6b7280}
+    .info-val{font-weight:600;color:#111;text-align:right;max-width:60%}
+    table{width:100%;border-collapse:collapse}
+    .summary-row{display:flex;justify-content:space-between;padding:6px 0;font-size:14px;color:#555}
+    .total-row{display:flex;justify-content:space-between;padding:10px 0 0;font-size:16px;font-weight:800;color:#471755;border-top:2px solid #e5e7eb;margin-top:6px}
+    .estimate-box{background:#f0fdf4;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px;margin-top:4px}
+    .estimate-box span{font-size:14px;color:#166534;font-weight:600}
+    .footer{text-align:center;padding:20px 24px;font-size:12px;color:#9ca3af}
+    @media(max-width:480px){.order-num{font-size:24px}}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <div class="store-name">Sahiba Wears</div>
+      <div class="store-tag">Ethnic &amp; Traditional Wear — Doha, Qatar</div>
+      <div class="order-num">#${order.orderNumber}</div>
+      <div class="status-badge" style="background:${statusColor}22;color:${statusColor};border:1.5px solid ${statusColor}44">
+        ${statusLabel}
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Delivery Address</div>
+      <div style="font-size:15px;font-weight:700;color:#111;margin-bottom:4px">${addr.fullName}</div>
+      <div style="font-size:14px;color:#555;line-height:1.6">${addressParts.join(", ")}</div>
+      <div style="font-size:14px;color:#555;margin-top:4px">📞 ${addr.phone}</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Order Items</div>
+      <table>${itemsHTML}</table>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Payment Summary</div>
+      <div class="summary-row"><span>Subtotal</span><span>QAR ${order.subtotal.toFixed(2)}</span></div>
+      ${order.discount > 0 ? `<div class="summary-row"><span>Discount${order.couponCode ? ` (${order.couponCode})` : ""}</span><span style="color:#10b981">−QAR ${order.discount.toFixed(2)}</span></div>` : ""}
+      ${order.fitAdjustmentFee > 0 ? `<div class="summary-row"><span>Fit Adjustment</span><span>QAR ${order.fitAdjustmentFee.toFixed(2)}</span></div>` : ""}
+      <div class="summary-row"><span>Delivery</span><span>${order.deliveryFee === 0 ? "FREE" : `QAR ${order.deliveryFee.toFixed(2)}`}</span></div>
+      <div class="total-row"><span>Total</span><span>QAR ${order.total.toFixed(2)}</span></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Delivery Info</div>
+      <div class="info-row"><span class="info-label">Payment</span><span class="info-val">${(order.paymentType || "").replace(/\b\w/g, c => c.toUpperCase())}</span></div>
+      <div class="info-row"><span class="info-label">Payment Status</span><span class="info-val">${(order.paymentStatus || "").toUpperCase()}</span></div>
+      ${order.trackingNumber ? `<div class="info-row"><span class="info-label">Tracking #</span><span class="info-val">${order.trackingNumber}</span></div>` : ""}
+      <div class="estimate-box">
+        <span>🚚 Estimated Delivery: ${estimatedStr}</span>
+      </div>
+    </div>
+
+    <div class="footer">
+      Placed on ${new Date(order.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}<br/>
+      Thank you for shopping with Sahiba Wears ✨
+    </div>
+  </div>
+</body>
+</html>`;
+
+        res.setHeader("Content-Type", "text/html");
+        res.send(html);
+    } catch (err) {
+        console.error("publicTrackOrder error:", err);
+        res.status(500).send("Server error");
+    }
+};
+

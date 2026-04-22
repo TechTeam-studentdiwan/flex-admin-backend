@@ -1,9 +1,11 @@
 import { Router } from "express";
-import { createOrder, buyNowOrder, previewBuyNow, getOrdersbyuserId, getOrderDetail, getAllOrders, updateOrderByAdmin, previewOrder, createPaymentURL, paymentVerify } from "../Controllers/orders.controller.js";
+import { createOrder, buyNowOrder, previewBuyNow, getOrdersbyuserId, getOrderDetail, getAllOrders, updateOrderByAdmin, previewOrder, createPaymentURL, paymentVerify, publicTrackOrder } from "../Controllers/orders.controller.js";
 import { authentication } from "../Middlewares/authentication.js";
 import { adminOnly } from "../Middlewares/admin.js";
 
 const orderRouter = Router();
+
+orderRouter.get("/track/:orderNumber", publicTrackOrder);
 
 orderRouter.post("/create", authentication, createOrder);
 orderRouter.post("/buy-now", authentication, buyNowOrder);

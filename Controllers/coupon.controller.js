@@ -1,5 +1,6 @@
 import CouponModel from "../Models/coupon.model.js";
 import OrderModel from "../Models/order.model.js";
+import mongoose from "mongoose";
 
 export const createCoupon = async (req, res) => {
     try {
@@ -62,10 +63,41 @@ export const deleteCoupon = async (req, res) => {
 };
 
 export const getCoupons = async (req, res) => {
-
     try {
         const now = new Date();
-        const coupons = await CouponModel.find({ isActive: true, validTo: { $gte: now } });
+        const { userId, cartTotal } = req.query;
+
+        const query = { isActive: true, validTo: { $gte: now }, validFrom: { $lte: now } };
+
+        if (cartTotal !== undefined) {
+            query.minCartValue = { $lte: parseFloat(cartTotal) };
+        }
+
+        let coupons = await CouponModel.find(query).sort({ createdAt: -1 });
+
+        if (userId) {
+            const userOrderCount = await OrderModel.countDocuments({ userId });
+
+            const usageAgg = await OrderModel.aggregate([
+                {
+                    $match: {
+                        userId: new mongoose.Types.ObjectId(userId),
+                        couponCode: { $exists: true, $ne: null, $ne: "" },
+                    },
+                },
+                { $group: { _id: "$couponCode", count: { $sum: 1 } } },
+            ]);
+            const usageMap = {};
+            usageAgg.forEach((u) => { usageMap[u._id] = u.count; });
+
+            coupons = coupons.filter((coupon) => {
+                if (coupon.firstOrderOnly && userOrderCount > 0) return false;
+                const used = usageMap[coupon.code] || 0;
+                if (used >= coupon.useLimitperUser) return false;
+                return true;
+            });
+        }
+
         res.json({ coupons });
     } catch (err) {
         console.error(err);
