@@ -141,17 +141,24 @@ export const createCharge = async (req, res) => {
       return res.status(400).json({ success: false, message: 'tokenId, orderId and amount are required' });
     }
 
+    const amountValue = parseFloat(parseFloat(amount).toFixed(2));
+    if (!amountValue || amountValue <= 0) {
+      return res.status(400).json({ success: false, message: 'Invalid amount' });
+    }
+
     const TAP_SECRET_KEY = process.env.TAP_SECRET_KEY;
+    const shortRef = orderId.slice(-12);
 
     const chargePayload = {
-      amount,
+      amount: amountValue,
       currency: currency || 'QAR',
       customer_initiated: true,
       threeDSecure: true,
       save_card: false,
-      description: `Order ${orderId}`,
+      description: `Order ${shortRef}`,
       metadata: { orderId },
-      reference: { transaction: `txn_${orderId}`, order: orderId },
+      merchant: { id: '' },
+      reference: { transaction: `txn_${shortRef}`, order: shortRef },
       receipt: { email: false, sms: false },
       customer: {
         first_name: customer?.firstName || 'Customer',
@@ -165,6 +172,8 @@ export const createCharge = async (req, res) => {
       source: { id: tokenId },
       redirect: { url: `${process.env.BACKEND_URL || 'https://backend.sahibawears.com'}/orders/tap/callback` },
     };
+
+    console.log('TAP charge payload:', JSON.stringify(chargePayload, null, 2));
 
     const tapResponse = await axios.post(
       'https://api.tap.company/v2/charges/',
