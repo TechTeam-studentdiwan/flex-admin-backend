@@ -133,6 +133,65 @@ export const previewOrder = async (req, res) => {
 
 
 
+export const createCharge = async (req, res) => {
+  try {
+    const { tokenId, orderId, amount, currency, customer } = req.body;
+
+    if (!tokenId || !orderId || !amount) {
+      return res.status(400).json({ success: false, message: 'tokenId, orderId and amount are required' });
+    }
+
+    const TAP_SECRET_KEY = process.env.TAP_SECRET_KEY;
+
+    const chargePayload = {
+      amount,
+      currency: currency || 'QAR',
+      customer_initiated: true,
+      threeDSecure: true,
+      save_card: false,
+      description: `Order ${orderId}`,
+      metadata: { orderId },
+      reference: { transaction: `txn_${orderId}`, order: orderId },
+      receipt: { email: false, sms: false },
+      customer: {
+        first_name: customer?.firstName || 'Customer',
+        last_name: customer?.lastName || 'User',
+        email: customer?.email || 'customer@example.com',
+        phone: {
+          country_code: customer?.countryCode || '974',
+          number: (customer?.phone || '').replace(/\D/g, ''),
+        },
+      },
+      source: { id: tokenId },
+      redirect: { url: `${process.env.BACKEND_URL || 'https://backend.sahibawears.com'}/orders/tap/callback` },
+    };
+
+    const tapResponse = await axios.post(
+      'https://api.tap.company/v2/charges/',
+      chargePayload,
+      {
+        headers: {
+          Authorization: `Bearer ${TAP_SECRET_KEY}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    const charge = tapResponse.data;
+
+    return res.status(200).json({
+      success: true,
+      chargeId: charge.id,
+      status: charge.status,
+      redirectUrl: charge.transaction?.url || null,
+    });
+  } catch (error) {
+    console.error('Create charge error:', error.response?.data || error);
+    const msg = error.response?.data?.errors?.[0]?.description || 'Charge creation failed';
+    return res.status(500).json({ success: false, message: msg });
+  }
+};
+
 export const paymentVerify = async (req, res) => {
   try {
     const { chargeId, orderId } = req.body;

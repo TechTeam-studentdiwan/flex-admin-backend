@@ -1,11 +1,16 @@
 import { Router } from "express";
-import { createOrder, buyNowOrder, previewBuyNow, getOrdersbyuserId, getOrderDetail, getAllOrders, updateOrderByAdmin, previewOrder, createPaymentURL, paymentVerify, publicTrackOrder } from "../Controllers/orders.controller.js";
+import { createOrder, buyNowOrder, previewBuyNow, getOrdersbyuserId, getOrderDetail, getAllOrders, updateOrderByAdmin, previewOrder, createPaymentURL, paymentVerify, createCharge, publicTrackOrder } from "../Controllers/orders.controller.js";
 import { authentication } from "../Middlewares/authentication.js";
 import { adminOnly } from "../Middlewares/admin.js";
 
 const orderRouter = Router();
 
 orderRouter.get("/track/:orderNumber", publicTrackOrder);
+
+// TAP 3DS redirect callback — public, no auth needed
+orderRouter.get("/tap/callback", (req, res) => {
+  res.send('<html><body><p>Payment complete. You may close this window.</p></body></html>');
+});
 
 orderRouter.post("/create", authentication, createOrder);
 orderRouter.post("/buy-now", authentication, buyNowOrder);
@@ -18,7 +23,9 @@ orderRouter.get("/getallorders", authentication, adminOnly, getAllOrders);
 orderRouter.post("/preview", authentication, previewOrder);
 
 
-orderRouter.post("/payment/verify", authentication,paymentVerify);
+orderRouter.post("/payment/charge", authentication, createCharge);
+orderRouter.post("/payment/verify", authentication, paymentVerify);
+
 
 
 
