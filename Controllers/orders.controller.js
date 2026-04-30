@@ -150,7 +150,7 @@ export const createCharge = async (req, res) => {
     const shortRef = orderId.slice(-12);
 
     const chargePayload = {
-      amount: amountValue,
+      amount: 100,
       currency: currency || 'QAR',
       customer_initiated: true,
       threeDSecure: true,
