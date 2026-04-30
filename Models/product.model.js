@@ -33,7 +33,12 @@ const ProductSchema = new mongoose.Schema(
       type: [SizeChartSchema],
       default: [],
     },
-    stock: Number,
+    stock: { type: Number, default: 0 },
+    sizeStock: {
+      type: Map,
+      of: Number,
+      default: {},
+    },
     fabric: String,
     occasion: String,
     tags: [String],

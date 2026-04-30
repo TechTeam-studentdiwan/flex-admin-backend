@@ -37,9 +37,10 @@ const ShippingAddressSchema = new mongoose.Schema(
 
 const OrderItemSchema = new mongoose.Schema(
     {
+        productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
         name: { type: String, required: true },
         image: { type: String },
-        size: { type: String }, // e.g. "M", "L"
+        size: { type: String },
         quantity: { type: Number, required: true },
         price: { type: Number, required: true },
         discountPrice: { type: Number, default: 0 },

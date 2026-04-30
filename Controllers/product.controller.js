@@ -67,10 +67,15 @@ export const getProducts = async (req, res) => {
             codAvailable,
             sort = "popular",
             limit = 20,
-            skip = 0
+            skip = 0,
+            adminView,
+            tag,
         } = req.query;
 
-        let query = { isActive: true };
+        // Admin bypasses stock/active filters; public only sees in-stock active products
+        let query = adminView === "true"
+            ? {}
+            : { isActive: true, stock: { $gt: 0 } };
 
         // 1. Category Filter
         if (category) query.category = category;
@@ -84,8 +89,11 @@ export const getProducts = async (req, res) => {
         }
 
         // 3. Occasion & Fabric Filters
-        if (occasion) query.occasion = occasion;
+        if (occasion) query.occasion = { $regex: occasion, $options: "i" };
         if (fabric) query.fabric = fabric;
+
+        // Tag filter (bestseller, trending, new, etc.)
+        if (tag) query.tags = { $in: [tag] };
 
         if (codAvailable) query.codAvailable = codAvailable;
         // 4. Fit Adjustment Filter

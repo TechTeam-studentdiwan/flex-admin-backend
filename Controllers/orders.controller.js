@@ -227,13 +227,16 @@ export const createOrder = async (req, res) => {
         let codSubtotal = 0;
 
         const orderItems = [];
+        const fetchedProducts = [];
         let paymentType = "cash on delivery";
         for (const item of cart.items) {
             const product = await ProductModel.findById(item.productId);
             if (!product) continue;
-            if(!product.codAvailable){
+            if (!product.codAvailable) {
                paymentType = "online";
             }
+
+            fetchedProducts.push({ item, product });
 
             const price = product.discountPrice || product.price;
             const itemTotal = price * item.quantity;
@@ -246,6 +249,7 @@ export const createOrder = async (req, res) => {
 
             // snapshot item into order
             orderItems.push({
+                productId: product._id,
                 name: product.name,
                 image: product.images?.[0] || "",
                 size: item.size,
@@ -299,6 +303,18 @@ export const createOrder = async (req, res) => {
             estimatedDelivery,
             paymentType
         });
+
+        // Decrement stock using already-fetched products
+        for (const { item, product } of fetchedProducts) {
+            const hasSizeStock = product.sizeStock && product.sizeStock.has(item.size);
+            if (hasSizeStock) {
+                const cur = product.sizeStock.get(item.size) || 0;
+                product.sizeStock.set(item.size, Math.max(0, cur - item.quantity));
+                product.markModified("sizeStock");
+            }
+            product.stock = Math.max(0, (product.stock || 0) - item.quantity);
+            await product.save();
+        }
 
         await CartModel.deleteOne({ userId });
 
@@ -390,6 +406,21 @@ export const buyNowOrder = async (req, res) => {
         const product = await ProductModel.findById(productId);
         if (!product) return res.status(404).json({ message: "Product not found" });
 
+        // Stock validation
+        const hasSizeStock = product.sizeStock && product.sizeStock.has(size);
+        const availableStock = hasSizeStock
+            ? (product.sizeStock.get(size) ?? 0)
+            : (product.stock ?? 0);
+        if (quantity > availableStock) {
+            return res.status(400).json({
+                success: false,
+                message: availableStock > 0
+                    ? `Only ${availableStock} unit${availableStock !== 1 ? "s" : ""} left for size ${size}`
+                    : `Size ${size} is out of stock`,
+                availableStock,
+            });
+        }
+
         const user = await UserModel.findById(userId);
         if (!user) return res.status(404).json({ message: "User not found" });
 
@@ -426,6 +457,7 @@ export const buyNowOrder = async (req, res) => {
         const finalPaymentType = paymentType === "cod" && product.codAvailable ? "cash on delivery" : "online";
 
         const orderItem = {
+            productId: product._id,
             name: product.name,
             image: product.images?.[0] || "",
             size,
@@ -452,6 +484,15 @@ export const buyNowOrder = async (req, res) => {
             estimatedDelivery,
             paymentType: finalPaymentType,
         });
+
+        // Decrement stock
+        if (hasSizeStock) {
+            const cur = product.sizeStock.get(size) || 0;
+            product.sizeStock.set(size, Math.max(0, cur - quantity));
+            product.markModified("sizeStock");
+        }
+        product.stock = Math.max(0, (product.stock || 0) - quantity);
+        await product.save();
 
         return res.status(200).json({
             success: true,
@@ -494,6 +535,28 @@ export const updateOrderByAdmin = async (req, res) => {
                 success: false,
                 message: "No fields provided to update",
             });
+        }
+
+        const existingOrder = await OrderModel.findById(orderId);
+        if (!existingOrder) {
+            return res.status(404).json({ success: false, message: "Order not found" });
+        }
+
+        // Restore stock when cancelling a non-cancelled order
+        if (orderStatus === "cancelled" && existingOrder.orderStatus !== "cancelled") {
+            for (const item of existingOrder.items) {
+                if (!item.productId) continue;
+                const product = await ProductModel.findById(item.productId);
+                if (!product) continue;
+                const hasSizeStock = product.sizeStock && product.sizeStock.has(item.size);
+                if (hasSizeStock) {
+                    const cur = product.sizeStock.get(item.size) || 0;
+                    product.sizeStock.set(item.size, cur + item.quantity);
+                    product.markModified("sizeStock");
+                }
+                product.stock = (product.stock || 0) + item.quantity;
+                await product.save();
+            }
         }
 
         const order = await OrderModel.findByIdAndUpdate(
