@@ -7,6 +7,7 @@ import {
     deleteCoupon,
     getMyVouchers,
     assignVoucher,
+    getAllAssignedVouchers,
 } from "../Controllers/coupon.controller.js";
 import { authentication } from "../Middlewares/authentication.js";
 import { adminOnly } from "../Middlewares/admin.js";
@@ -20,5 +21,6 @@ couponRouter.put("/update/:id", authentication, adminOnly, updateCoupon);
 couponRouter.delete("/delete/:id", authentication, adminOnly, deleteCoupon);
 couponRouter.get("/my-vouchers/:userId", authentication, getMyVouchers);
 couponRouter.post("/assign", authentication, adminOnly, assignVoucher);
+couponRouter.get("/assigned-all", authentication, adminOnly, getAllAssignedVouchers);
 
 export default couponRouter;

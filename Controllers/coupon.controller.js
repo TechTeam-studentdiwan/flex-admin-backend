@@ -215,6 +215,44 @@ export const getMyVouchers = async (req, res) => {
     }
 };
 
+// Admin: get all assigned vouchers (with user info populated)
+export const getAllAssignedVouchers = async (req, res) => {
+    try {
+        const vouchers = await CouponModel.find({ assignedUserId: { $ne: null } })
+            .populate("assignedUserId", "name email phone")
+            .sort({ createdAt: -1 });
+
+        const now = new Date();
+
+        // Batch-fetch usage counts for all these coupon codes
+        const codes = vouchers.map((v) => v.code);
+        const usageAgg = await OrderModel.aggregate([
+            { $match: { couponCode: { $in: codes } } },
+            { $group: { _id: "$couponCode", count: { $sum: 1 } } },
+        ]);
+        const usageMap = {};
+        usageAgg.forEach((u) => { usageMap[u._id] = u.count; });
+
+        const enriched = vouchers.map((v) => {
+            const used = usageMap[v.code] || 0;
+            const isExpired = v.validTo < now || !v.isActive;
+            const isUsed = used >= v.useLimitperUser;
+            return {
+                ...v.toObject(),
+                used,
+                isExpired,
+                isUsed,
+                canUse: !isExpired && !isUsed,
+            };
+        });
+
+        res.json({ success: true, vouchers: enriched });
+    } catch (err) {
+        console.error("getAllAssignedVouchers error:", err);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
 // Admin: assign a personal voucher to a specific user
 export const assignVoucher = async (req, res) => {
     try {
