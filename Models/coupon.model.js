@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 
+
 const CouponSchema = new mongoose.Schema({
   code: { type: String, required: true, unique: true, index: true },
   type: { type: String, enum: ["percentage", "flat", "freedelivery"], required: true },
@@ -13,7 +14,8 @@ const CouponSchema = new mongoose.Schema({
   eligibleCategories: [String],
   firstOrderOnly: { type: Boolean, default: false },
   isActive: { type: Boolean, default: true },
-  description: { type: String }
+  description: { type: String },
+  assignedUserId: { type: mongoose.Schema.Types.ObjectId, ref: "User", index: true, default: null },
 }, { timestamps: true });
 
 const CouponModel =

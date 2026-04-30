@@ -1,5 +1,6 @@
 import CouponModel from "../Models/coupon.model.js";
 import OrderModel from "../Models/order.model.js";
+import UserModel from "../Models/user.model.js";
 import mongoose from "mongoose";
 
 export const createCoupon = async (req, res) => {
@@ -67,7 +68,8 @@ export const getCoupons = async (req, res) => {
         const now = new Date();
         const { userId, cartTotal } = req.query;
 
-        const query = { isActive: true, validTo: { $gte: now }, validFrom: { $lte: now } };
+        // Only public coupons (not assigned to a specific user)
+        const query = { isActive: true, validTo: { $gte: now }, validFrom: { $lte: now }, assignedUserId: null };
 
         if (cartTotal !== undefined) {
             query.minCartValue = { $lte: parseFloat(cartTotal) };
@@ -113,6 +115,11 @@ export const validateCoupon = async (req, res) => {
         const coupon = await CouponModel.findOne({ code, isActive: true });
         if (!coupon) {
             return res.status(404).json({ success: false, message: "Invalid coupon code" });
+        }
+
+        // If this voucher is assigned to a specific user, enforce it
+        if (coupon.assignedUserId && coupon.assignedUserId.toString() !== userId?.toString()) {
+            return res.status(403).json({ success: false, message: "This voucher is not assigned to your account" });
         }
 
         const now = new Date();
@@ -167,5 +174,81 @@ export const validateCoupon = async (req, res) => {
     }
 };
 
+// Get all personal vouchers assigned to a user
+export const getMyVouchers = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        if (!userId) return res.status(400).json({ message: "userId required" });
 
+        const now = new Date();
+        const vouchers = await CouponModel.find({ assignedUserId: userId }).sort({ createdAt: -1 });
+
+        const usageAgg = await OrderModel.aggregate([
+            {
+                $match: {
+                    userId: new mongoose.Types.ObjectId(userId),
+                    couponCode: { $exists: true, $ne: null, $ne: "" },
+                },
+            },
+            { $group: { _id: "$couponCode", count: { $sum: 1 } } },
+        ]);
+        const usageMap = {};
+        usageAgg.forEach((u) => { usageMap[u._id] = u.count; });
+
+        const enriched = vouchers.map((v) => {
+            const used = usageMap[v.code] || 0;
+            const isExpired = v.validTo < now || !v.isActive;
+            const isUsed = used >= v.useLimitperUser;
+            return {
+                ...v.toObject(),
+                used,
+                isExpired,
+                isUsed,
+                canUse: !isExpired && !isUsed,
+            };
+        });
+
+        res.json({ success: true, vouchers: enriched });
+    } catch (err) {
+        console.error("getMyVouchers error:", err);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+// Admin: assign a personal voucher to a specific user
+export const assignVoucher = async (req, res) => {
+    try {
+        const { userId, code, type, value, validFrom, validTo, description, maxDiscount, minCartValue } = req.body;
+
+        if (!userId || !code || !type || value === undefined || !validFrom || !validTo) {
+            return res.status(400).json({ message: "Missing required fields" });
+        }
+
+        const user = await UserModel.findById(userId);
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        const exists = await CouponModel.findOne({ code });
+        if (exists) return res.status(400).json({ message: "Coupon code already exists" });
+
+        const voucher = await CouponModel.create({
+            code: code.toUpperCase(),
+            type,
+            value: Number(value),
+            validFrom: new Date(validFrom),
+            validTo: new Date(validTo),
+            description,
+            maxDiscount: maxDiscount ? Number(maxDiscount) : undefined,
+            minCartValue: minCartValue ? Number(minCartValue) : 0,
+            usageLimit: 1,
+            useLimitperUser: 1,
+            isActive: true,
+            assignedUserId: userId,
+        });
+
+        res.json({ success: true, voucher, message: `Voucher assigned to ${user.name || user.email}` });
+    } catch (err) {
+        console.error("assignVoucher error:", err);
+        res.status(500).json({ message: "Server error" });
+    }
+};
 
