@@ -21,22 +21,38 @@ export const updateUserProfile = async (req, res) => {
             return res.status(404).json({ success: false, message: "User not found" });
         }
 
+        if (email && email !== user.email) {
+            const emailTaken = await UserModel.findOne({ email, _id: { $ne: userId } });
+            if (emailTaken) {
+                return res.status(400).json({ success: false, message: "This email is already in use" });
+            }
+        }
+
+        if (phone && phone !== user.phone) {
+            const phoneTaken = await UserModel.findOne({ phone, _id: { $ne: userId } });
+            if (phoneTaken) {
+                return res.status(400).json({ success: false, message: "This phone number is already in use" });
+            }
+        }
+
         if (password) {
             const salt = await bcrypt.genSalt(10);
             const hashedPassword = await bcrypt.hash(password, salt);
             updateData.password = hashedPassword;
         }
 
-        // 🚚 Only admin can update delivery fee
-        if (deliveryfee !== undefined) {
+        // Admin-only fields
+        if (deliveryfee !== undefined || req.body.supportEmail !== undefined || req.body.supportWhatsapp !== undefined) {
             if (!user.isAdmin) {
                 return res.status(403).json({
                     success: false,
-                    message: "Only admin can update delivery fee",
+                    message: "Only admin can update these settings",
                 });
             }
-            updateData.deliveryfee = deliveryfee;
-            updateData.terms = terms;
+            if (deliveryfee !== undefined) updateData.deliveryfee = deliveryfee;
+            if (terms !== undefined) updateData.terms = terms;
+            if (req.body.supportEmail !== undefined) updateData.supportEmail = req.body.supportEmail;
+            if (req.body.supportWhatsapp !== undefined) updateData.supportWhatsapp = req.body.supportWhatsapp;
         }
 
         const updatedUser = await UserModel.findByIdAndUpdate(
@@ -55,7 +71,6 @@ export const updateUserProfile = async (req, res) => {
         return res.status(500).json({
             success: false,
             message: "Server error while updating profile",
-            user:updatedUser
         });
     }
 };
@@ -188,6 +203,23 @@ export const getAdminDashboardOverview = async (req, res) => {
   }
 };
 
+
+export const getSupportSettings = async (req, res) => {
+  try {
+    const admin = await UserModel.findOne({ isAdmin: true })
+      .select("supportEmail supportWhatsapp")
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      supportEmail: admin?.supportEmail || '',
+      supportWhatsapp: admin?.supportWhatsapp || '',
+    });
+  } catch (error) {
+    console.error("Get support settings error:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
 
 export const getTerms = async (req, res) => {
   try {

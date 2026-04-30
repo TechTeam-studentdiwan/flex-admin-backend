@@ -186,6 +186,9 @@ export const paymentVerify = async (req, res) => {
 
     await order.save();
 
+    // Clear the cart now that payment is confirmed
+    await CartModel.deleteOne({ userId: order.userId });
+
     return res.status(200).json({
       success: true,
       message: "Payment verified successfully",
@@ -316,7 +319,12 @@ export const createOrder = async (req, res) => {
             await product.save();
         }
 
-        await CartModel.deleteOne({ userId });
+        // For COD orders the cart clears immediately.
+        // For online-payment orders the cart is cleared only after payment is verified,
+        // so a failed/cancelled payment does not empty the cart.
+        if (paymentType === "cash on delivery") {
+            await CartModel.deleteOne({ userId });
+        }
 
         return res.status(200).json({
             success: true,

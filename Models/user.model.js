@@ -81,6 +81,8 @@ const UserSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: "Product",
         }],
+        supportEmail: { type: String, trim: true, default: '' },
+        supportWhatsapp: { type: String, trim: true, default: '' },
     },
     { timestamps: true }
 );
