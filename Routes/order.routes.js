@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createOrder, buyNowOrder, previewBuyNow, getOrdersbyuserId, getOrderDetail, getAllOrders, updateOrderByAdmin, previewOrder, createPaymentURL, paymentVerify, createCharge, publicTrackOrder } from "../Controllers/orders.controller.js";
+import { createOrder, buyNowOrder, previewBuyNow, getOrdersbyuserId, getOrderDetail, getAllOrders, updateOrderByAdmin, previewOrder, createPaymentURL, paymentVerify, publicTrackOrder } from "../Controllers/orders.controller.js";
 import { authentication } from "../Middlewares/authentication.js";
 import { adminOnly } from "../Middlewares/admin.js";
 
@@ -22,8 +22,6 @@ orderRouter.get("/getorderdetails/:orderId", authentication, getOrderDetail);
 orderRouter.get("/getallorders", authentication, adminOnly, getAllOrders);
 orderRouter.post("/preview", authentication, previewOrder);
 
-
-orderRouter.post("/payment/charge", authentication, createCharge);
 orderRouter.post("/payment/verify", authentication, paymentVerify);
 
 
