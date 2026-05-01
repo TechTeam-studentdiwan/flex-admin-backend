@@ -149,15 +149,19 @@ export const createCharge = async (req, res) => {
     const TAP_SECRET_KEY = process.env.TAP_SECRET_KEY;
     const shortRef = orderId.slice(-12);
 
+    const resolvedCurrency = currency || 'QAR';
     const chargePayload = {
-      amount: 100,
-      currency: currency || 'QAR',
-      customer_initiated: true,
+      amount: amountValue,
+      currency: resolvedCurrency,
       threeDSecure: true,
       save_card: false,
       description: `Order ${shortRef}`,
-      metadata: { orderId },
-      merchant: { id: '' },
+      order: {
+        id: '',
+        amount: amountValue,
+        currency: resolvedCurrency,
+        description: `Order ${shortRef}`,
+      },
       reference: { transaction: `txn_${shortRef}`, order: shortRef },
       receipt: { email: false, sms: false },
       customer: {
