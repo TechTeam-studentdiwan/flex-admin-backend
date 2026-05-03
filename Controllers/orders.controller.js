@@ -821,6 +821,8 @@ export const publicTrackOrder = async (req, res) => {
     .total-row{display:flex;justify-content:space-between;padding:10px 0 0;font-size:16px;font-weight:800;color:#471755;border-top:2px solid #e5e7eb;margin-top:6px}
     .estimate-box{background:#f0fdf4;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px;margin-top:4px}
     .estimate-box span{font-size:14px;color:#166534;font-weight:600}
+    .map-btn{display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:8px 16px;background:#471755;color:#fff;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none}
+    .map-btn:hover{background:#5c1e6b}
     .footer{text-align:center;padding:20px 24px;font-size:12px;color:#9ca3af}
     @media(max-width:480px){.order-num{font-size:24px}}
   </style>
@@ -841,6 +843,7 @@ export const publicTrackOrder = async (req, res) => {
       <div style="font-size:15px;font-weight:700;color:#111;margin-bottom:4px">${addr.fullName}</div>
       <div style="font-size:14px;color:#555;line-height:1.6">${addressParts.join(", ")}</div>
       <div style="font-size:14px;color:#555;margin-top:4px">📞 ${addr.phone}</div>
+      ${addr.mapLink ? `<a href="${addr.mapLink}" target="_blank" rel="noopener noreferrer" class="map-btn">📍 View Location in Maps</a>` : ""}
     </div>
 
     <div class="section">

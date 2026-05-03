@@ -31,6 +31,7 @@ const ShippingAddressSchema = new mongoose.Schema(
             lat: { type: Number },
             lng: { type: Number },
         },
+        mapLink: { type: String, trim: true },
     },
     { _id: false }
 );
