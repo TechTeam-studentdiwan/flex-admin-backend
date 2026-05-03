@@ -237,6 +237,25 @@ export const createOrder = async (req, res) => {
                paymentType = "online";
             }
 
+            // Stock validation
+            const hasSizeStock = product.sizeStock && product.sizeStock.has(item.size);
+            const availableStock = hasSizeStock
+                ? (product.sizeStock.get(item.size) ?? 0)
+                : (product.stock ?? 0);
+            if (item.quantity > availableStock) {
+                return res.status(400).json({
+                    success: false,
+                    outOfStock: true,
+                    message: availableStock > 0
+                        ? `Only ${availableStock} unit${availableStock !== 1 ? "s" : ""} left for "${product.name}" (Size: ${item.size})`
+                        : `"${product.name}" (Size: ${item.size}) is out of stock`,
+                    productId: product._id,
+                    productName: product.name,
+                    size: item.size,
+                    availableStock,
+                });
+            }
+
             fetchedProducts.push({ item, product });
 
             const price = product.discountPrice || product.price;
