@@ -1,6 +1,30 @@
 import UserModel from "../Models/user.model.js";
 
 
+export const updateUserAddress = async (req, res) => {
+  try {
+    const { userId, addressId, address } = req.body;
+    if (!userId || !addressId || !address) {
+      return res.status(400).json({ message: "All fields required" });
+    }
+    const user = await UserModel.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const idx = user.addresses.findIndex(a => a._id.toString() === addressId.toString());
+    if (idx === -1) return res.status(404).json({ message: "Address not found" });
+
+    if (address.isDefault) {
+      user.addresses.forEach(a => (a.isDefault = false));
+    }
+    Object.assign(user.addresses[idx], address);
+    await user.save();
+    res.json({ success: true, message: "Address updated" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 export const addUserAddress = async (req, res) => {
 
     try {

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { addUserAddress, getUserAddress, removeUserAddress } from "../Controllers/userAddress.controller.js";
+import { addUserAddress, getUserAddress, removeUserAddress, updateUserAddress } from "../Controllers/userAddress.controller.js";
 import { addUserMeasurement, getUserMeasurement, validateMeasurement, removeUserMeasurement } from "../Controllers/userMeasurements.controllers.js";
 import { authentication } from "../Middlewares/authentication.js";
 import { adminOnly } from "../Middlewares/admin.js";
@@ -10,6 +10,7 @@ const userRouter = Router();
 userRouter.get("/get-address/:userId", authentication, getUserAddress);
 userRouter.post("/add-address", authentication, addUserAddress);
 userRouter.delete("/remove-address", authentication, removeUserAddress);
+userRouter.put("/update-address", authentication, updateUserAddress);
 
 // USER MEASUREMENT ROUTES
 userRouter.get("/get-measurements/:userId", authentication, getUserMeasurement);
